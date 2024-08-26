@@ -7,17 +7,15 @@
 
 #include "shader.h"
 #include "vao.h"
+#include "vbo.h"
 
 Mesh meshCreate(float* vertices, size_t vertSize, GLuint* indices, size_t indSize) {
   Mesh mesh;
-  mesh.vertices = malloc(vertSize);
+  mesh.vertices = vertices;
   mesh.vertSize = vertSize;
-  mesh.indices = malloc(indSize);
+  mesh.indices = indices;
   mesh.indSize = indSize;
   mesh.mat = (mat4s)GLMS_MAT4_IDENTITY_INIT;
-
-  memcpy((void*)mesh.vertices, (void*)vertices, vertSize);
-  memcpy((void*)mesh.indices, (void*)indices, indSize);
 
   mesh.vao = vaoCreate(1);
   mesh.vbo = vboCreate(1, mesh.vertices, mesh.vertSize);
@@ -48,7 +46,7 @@ Mesh meshCreate(float* vertices, size_t vertSize, GLuint* indices, size_t indSiz
   return mesh;
 }
 
-Mesh meshCreateCube(vec3s pos, vec3s color, float scale) {
+Mesh meshCreateCube(float size, vec3s pos, vec3s color, float scale) {
   //        5--------6
   //       /|       /|
   //      4--------7 |
@@ -57,18 +55,20 @@ Mesh meshCreateCube(vec3s pos, vec3s color, float scale) {
   //      |/       |/
   //      0--------3
 
-  float vertices[88] = {
-    -0.1f, -0.1f,  0.1f,  color.x, color.y, color.z,   0.f, 0.f,   1.f, 1.f, 0.f,
-    -0.1f, -0.1f, -0.1f,  color.x, color.y, color.z,   0.f, 0.f,   1.f, 1.f, 0.f,
-     0.1f, -0.1f, -0.1f,  color.x, color.y, color.z,   0.f, 0.f,   1.f, 1.f, 0.f,
-     0.1f, -0.1f,  0.1f,  color.x, color.y, color.z,   0.f, 0.f,   1.f, 1.f, 0.f,
-    -0.1f,  0.1f,  0.1f,  color.x, color.y, color.z,   0.f, 0.f,   1.f, 1.f, 0.f,
-    -0.1f,  0.1f, -0.1f,  color.x, color.y, color.z,   0.f, 0.f,   1.f, 1.f, 0.f,
-     0.1f,  0.1f, -0.1f,  color.x, color.y, color.z,   0.f, 0.f,   1.f, 1.f, 0.f,
-     0.1f,  0.1f,  0.1f,  color.x, color.y, color.z,   0.f, 0.f,   1.f, 1.f, 0.f,
+  float verticesStack[88] = {
+    -size, -size,  size,  color.x, color.y, color.z,   0.f, 0.f,   1.f, 1.f, 0.f,
+    -size, -size, -size,  color.x, color.y, color.z,   0.f, 0.f,   1.f, 1.f, 0.f,
+     size, -size, -size,  color.x, color.y, color.z,   0.f, 0.f,   1.f, 1.f, 0.f,
+     size, -size,  size,  color.x, color.y, color.z,   0.f, 0.f,   1.f, 1.f, 0.f,
+    -size,  size,  size,  color.x, color.y, color.z,   0.f, 0.f,   1.f, 1.f, 0.f,
+    -size,  size, -size,  color.x, color.y, color.z,   0.f, 0.f,   1.f, 1.f, 0.f,
+     size,  size, -size,  color.x, color.y, color.z,   0.f, 0.f,   1.f, 1.f, 0.f,
+     size,  size,  size,  color.x, color.y, color.z,   0.f, 0.f,   1.f, 1.f, 0.f,
   };
+  size_t vertSize = sizeof(verticesStack);
+  float* vertices = malloc(vertSize);
 
-  GLuint indices[36] = {
+  GLuint indicesStack[36] = {
 	  0, 1, 2,
 	  0, 2, 3,
 	  0, 4, 7,
@@ -82,8 +82,13 @@ Mesh meshCreateCube(vec3s pos, vec3s color, float scale) {
 	  4, 5, 6,
 	  4, 6, 7
   };
+  size_t indSize = sizeof(indicesStack);
+  GLuint* indices = malloc(indSize);
 
-  Mesh mesh = meshCreate(vertices, sizeof(vertices), indices, sizeof(indices));
+  memcpy((void*)vertices, (void*)verticesStack, vertSize);
+  memcpy((void*)indices, (void*)indicesStack, indSize);
+
+  Mesh mesh = meshCreate(vertices, vertSize, indices, indSize);
   meshScale(&mesh, scale);
   meshTranslate(&mesh, pos);
 
@@ -98,14 +103,28 @@ void meshTranslate(Mesh* self, vec3s v) {
   glm_translate(self->mat.raw, v.raw);
 }
 
+void meshTranslateX(Mesh* self, float x) {
+  glm_translate_x(self->mat.raw, x);
+}
+
+void meshTranslateY(Mesh* self, float y) {
+  glm_translate_y(self->mat.raw, y);
+}
+
+void meshTranslateZ(Mesh* self, float z) {
+  glm_translate_z(self->mat.raw, z);
+}
+
 void meshDraw(Mesh* self, const Shader* shader) {
   vaoBind(&self->vao);
 
   shaderUniformVec3(shader, "camPos", _gCamera.position.raw);
   shaderUniformMat4(shader, "cam", _gCamera.mat.raw);
-  shaderUniformMat4(shader, "model", self->mat.raw);
 
+  shaderUniformMat4(shader, "model", self->mat.raw);
   glDrawElements(GL_TRIANGLES, self->indSize / sizeof(self->indices[0]), GL_UNSIGNED_INT, 0);
+
+  vaoUnbind();
 }
 
 void meshDelete(Mesh* self) {

@@ -9,6 +9,7 @@ in vec3 normal;
 
 uniform vec4 lightColor;
 uniform vec3 camPos;
+uniform vec3 colorUni;
 
 vec4 directionalLight() {
   vec3 n = normalize(normal);

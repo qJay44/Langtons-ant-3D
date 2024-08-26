@@ -1,3 +1,5 @@
+#include <cglm/mat4.h>
+#include <cglm/struct/mat4.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,11 +7,15 @@
 #include <windows.h>
 
 #include "cglm/types-struct.h"
+#include "cglm/affine-pre.h"
 
 #include "camera.h"
 #include "inputs.h"
+#include "mesh/ant/ant.h"
+#include "mesh/ant/grid.h"
 #include "mesh/mesh.h"
 #include "mesh/shader.h"
+#include "mesh/ant/ant.h"
 
 struct State _gState = {
   .nearPlane = 0.1f,
@@ -66,8 +72,10 @@ int main() {
   Shader mainShader = shaderCreate("shaders/main.vert", "shaders/main.frag", "shaders/main.geom");
   shaderUniformVec4(&mainShader, "lightColor", lightColor.raw);
 
-  Mesh cube1 = meshCreateCube((vec3s){0.f, 0.f, 0.f}, (vec3s){.0f, .5f, 0.f}, 2.f);
-  Mesh cube2 = meshCreateCube((vec3s){0.2f, 0.f, 0.f}, (vec3s){.5f, .5f, 0.f}, 2.f);
+  Mesh baseCube = meshCreateCube(CUBE_SIZE, (vec3s){0.f, 0.f, 0.f}, (vec3s){1.f, 1.f, 1.f}, 1.f);
+
+  Ant ant = antCreate((vec3s){0.f, 0.f, 0.f}, CUBE_SIZE * 2.f, baseCube);
+  Grid grid = gridCreate(1);
 
   double titleTimer = glfwGetTime();
   double prevTime = titleTimer;
@@ -100,6 +108,7 @@ int main() {
       sprintf(title, "FPS: %d / %f ms", fps, dt);
       glfwSetWindowTitle(window, title);
       titleTimer = currTime;
+      antUpdate(&grid, &ant);
     }
 
     glClearColor(bgColor.x, bgColor.y, bgColor.z, 1.f);
@@ -112,8 +121,25 @@ int main() {
 
     glDisable(GL_CULL_FACE);
 
-    meshDraw(&cube1, &mainShader);
-    meshDraw(&cube2, &mainShader);
+    /* shaderUniformVec3(&mainShader, "colorUni", (vec3){1.f, 1.f, 1.f}); */
+    /* meshDraw(&baseCube, &mainShader); */
+
+    for (u32 i = 0; i < grid.idx; i++) {
+      enum BlockColor bc = grid.cells[i].color;
+      vec3 color = {
+        (bc >> 16) / 255.f,
+        ((bc >> 8) & 0xff) / 255.f,
+        (bc & 0xff) / 255.f
+      };
+      // TODO: make a cube in the geometry shader
+      shaderUniformVec3(&mainShader, "posUni", grid.cells[i].pos.raw);
+      shaderUniformVec3(&mainShader, "colorUni", color);
+      meshDraw(&baseCube, &mainShader);
+    }
+
+    shaderUniformVec3(&mainShader, "posUni", ant.pos.raw);
+    shaderUniformVec3(&mainShader, "colorUni", (vec3){1.f, 1.f, 1.f});
+    meshDraw(&ant.me, &mainShader);
 
     glEnable(GL_CULL_FACE);
 
