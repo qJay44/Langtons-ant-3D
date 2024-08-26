@@ -13,10 +13,9 @@ out MY_VETEX_DATA {
 } data_out;
 
 uniform mat4 model;
-uniform vec3 posUni;
 
 void main() {
-  vec3 vertPos = vec3(model * vec4(posUni, 1.f));
+  vec3 vertPos = vec3(model * vec4(pos, 1.f));
   data_out.vertPos = vertPos;
   data_out.color = col;
   data_out.texCoord = tex;

@@ -14,7 +14,7 @@ enum BlockColor : u32 {
 };
 
 struct Cell {
-  vec3s pos;
+  vec3s translateVal;
   u32 idx;
   enum BlockColor color;
 };

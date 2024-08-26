@@ -1,5 +1,7 @@
 #include "ant.h"
 #include "grid.h"
+#include <cglm/struct/vec3.h>
+#include <stdio.h>
 
 Ant antCreate(vec3s pos, float stepSize, Mesh representation) {
   Ant ant = {
@@ -144,20 +146,30 @@ void antMove(Ant* self) {
 }
 
 void antUpdate(Grid* grid, Ant *self) {
-  u32 x = MIN(MAX((u32)self->pos.x * 1.f / CUBE_SIZE, 0), GRID_DIM_SIZE);
-  u32 y = MIN(MAX((u32)self->pos.y * 1.f / CUBE_SIZE, 0), GRID_DIM_SIZE);
-  u32 z = MIN(MAX((u32)self->pos.z * 1.f / CUBE_SIZE, 0), GRID_DIM_SIZE);
+  vec3s before = self->pos;
+  u32 x = MIN(MAX((u32)(self->pos.x / self->stepSize), 0), GRID_DIM_SIZE);
+  u32 y = MIN(MAX((u32)(self->pos.y / self->stepSize), 0), GRID_DIM_SIZE);
+  u32 z = MIN(MAX((u32)(self->pos.z / self->stepSize), 0), GRID_DIM_SIZE);
   u32 idx = IX(x, y, z);
+
+  vec3s after;
+  vec3s t;
 
   for (u32 i = 0; i < grid->idx; i++) {
     if (grid->cells[i].idx == idx) {
       antPlace(self, &grid->cells[i].color);
       antMove(self);
+      after = self->pos;
+      t = glms_vec3_sub(after, before);
+      grid->cells[i].translateVal = t;
       return;
     }
   }
 
+  after = self->pos;
+  t = glms_vec3_sub(after, before);
+
   // If block doesn't exist
-  gridAdd(grid, (struct Cell){.pos = self->pos, .idx = idx, .color = BLOCK_COLOR1});
+  gridAdd(grid, (struct Cell){.translateVal = t, .idx = idx, .color = BLOCK_COLOR1});
 }
 

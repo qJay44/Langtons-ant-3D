@@ -4,7 +4,7 @@
 #include "cglm/struct/mat4.h"
 
 Camera _gCamera = {
-  .position = {-1.f, 1.f, 2.f},
+  .position = {19.f, 21.f, 22.f},
   .orientation = {0.5f, -0.3f, -1.f},
   .up = {0.f, 1.f, 0.f},
   .speed = 100.f,

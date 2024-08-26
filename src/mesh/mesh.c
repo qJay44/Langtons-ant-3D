@@ -115,6 +115,13 @@ void meshTranslateZ(Mesh* self, float z) {
   glm_translate_z(self->mat.raw, z);
 }
 
+Mesh meshTranslateCopy(const Mesh* mesh, vec3s v) {
+  Mesh m = *mesh;
+  glm_translate(m.mat.raw, v.raw);
+
+  return m;
+}
+
 void meshDraw(Mesh* self, const Shader* shader) {
   vaoBind(&self->vao);
 

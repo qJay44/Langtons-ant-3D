@@ -26,6 +26,8 @@ typedef struct {
 [[nodiscard]] Mesh meshCreate(float* vertices, size_t vertSize, GLuint* indices, size_t indSize);
 [[nodiscard]] Mesh meshCreateCube(float size, vec3s pos, vec3s color, float scale);
 
+Mesh meshTranslateCopy(const Mesh* mesh, vec3s v);
+
 void meshScale(Mesh* self, float scale);
 void meshTranslate(Mesh* self, vec3s v);
 void meshTranslateX(Mesh* self, float x);

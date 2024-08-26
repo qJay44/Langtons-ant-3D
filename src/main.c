@@ -72,9 +72,9 @@ int main() {
   Shader mainShader = shaderCreate("shaders/main.vert", "shaders/main.frag", "shaders/main.geom");
   shaderUniformVec4(&mainShader, "lightColor", lightColor.raw);
 
-  Mesh baseCube = meshCreateCube(CUBE_SIZE, (vec3s){0.f, 0.f, 0.f}, (vec3s){1.f, 1.f, 1.f}, 1.f);
+  Mesh baseCube = meshCreateCube(CUBE_SIZE, (vec3s){20.f, 20.f, 20.f}, (vec3s){1.f, 1.f, 1.f}, 1.f);
 
-  Ant ant = antCreate((vec3s){0.f, 0.f, 0.f}, CUBE_SIZE * 2.f, baseCube);
+  Ant ant = antCreate((vec3s){20.f, 20.f, 20.f}, CUBE_SIZE * 2.f, baseCube);
   Grid grid = gridCreate(1);
 
   double titleTimer = glfwGetTime();
@@ -131,13 +131,11 @@ int main() {
         ((bc >> 8) & 0xff) / 255.f,
         (bc & 0xff) / 255.f
       };
-      // TODO: make a cube in the geometry shader
-      shaderUniformVec3(&mainShader, "posUni", grid.cells[i].pos.raw);
+      Mesh m = meshTranslateCopy(&baseCube, grid.cells[i].translateVal);
       shaderUniformVec3(&mainShader, "colorUni", color);
-      meshDraw(&baseCube, &mainShader);
+      meshDraw(&m, &mainShader);
     }
 
-    shaderUniformVec3(&mainShader, "posUni", ant.pos.raw);
     shaderUniformVec3(&mainShader, "colorUni", (vec3){1.f, 1.f, 1.f});
     meshDraw(&ant.me, &mainShader);
 
