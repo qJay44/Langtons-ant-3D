@@ -70,17 +70,21 @@ int main() {
   vec3s bgColor = (vec3s){0.07f, 0.13f, 0.17f};
 
   Shader mainShader = shaderCreate("shaders/main.vert", "shaders/main.frag", "shaders/main.geom");
+  Shader boundaryShader = shaderCreate("shaders/main.vert", "shaders/boundary.frag", "shaders/boundary.geom");
   shaderUniformVec4(&mainShader, "lightColor", lightColor.raw);
 
-  Mesh baseCube = meshCreateCube(CUBE_SIZE, (vec3s){20.f, 20.f, 20.f}, (vec3s){1.f, 1.f, 1.f}, 1.f);
-
-  Ant ant = antCreate((vec3s){20.f, 20.f, 20.f}, CUBE_SIZE * 2.f, baseCube);
+  vec3s center = {20.f, 20.f, 20.f};
+  Mesh baseCube = meshCreateCube(CUBE_SIZE, center, (vec3s){1.f, 1.f, 1.f}, 1.f);
+  Ant ant = antCreate((vec3s)center, baseCube);
   Grid grid = gridCreate(1);
+
+  Mesh boundaryCube = meshCreateCube(CUBE_SIZE * GRID_DIM_SIZE, center, (vec3s){1.f, 0.f, 0.f}, 1.f);
 
   double titleTimer = glfwGetTime();
   double prevTime = titleTimer;
   double currTime = prevTime;
   double dt;
+  bool wasUnfocused = false;
 
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_MULTISAMPLE);
@@ -93,7 +97,14 @@ int main() {
   while (!glfwWindowShouldClose(window)) {
     static double mouseX, mouseY;
 
-    glfwGetCursorPos(window, &mouseX, &mouseY);
+    if (glfwGetWindowAttrib(window, GLFW_FOCUSED)) {
+      if (!wasUnfocused)
+        glfwGetCursorPos(window, &mouseX, &mouseY);
+      wasUnfocused = false;
+    } else {
+      wasUnfocused = true;
+    }
+
     glfwSetCursorPos(window, _gState.winWidth * 0.5f, _gState.winHeight * 0.5f);
 
     currTime = glfwGetTime();
@@ -108,7 +119,6 @@ int main() {
       sprintf(title, "FPS: %d / %f ms", fps, dt);
       glfwSetWindowTitle(window, title);
       titleTimer = currTime;
-      antUpdate(&grid, &ant);
     }
 
     glClearColor(bgColor.x, bgColor.y, bgColor.z, 1.f);
@@ -118,11 +128,17 @@ int main() {
 
     cameraMove(mouseX, mouseY);
     cameraUpdate(dt);
+    antUpdate(&grid, &ant);
 
     glDisable(GL_CULL_FACE);
 
+    // Draw the base cube
     /* shaderUniformVec3(&mainShader, "colorUni", (vec3){1.f, 1.f, 1.f}); */
     /* meshDraw(&baseCube, &mainShader); */
+
+    // Draw ant
+    shaderUniformVec3(&mainShader, "colorUni", (vec3){1.f, 1.f, 1.f});
+    meshDraw(&ant.mesh, &mainShader);
 
     for (u32 i = 0; i < grid.idx; i++) {
       enum BlockColor bc = grid.cells[i].color;
@@ -131,13 +147,12 @@ int main() {
         ((bc >> 8) & 0xff) / 255.f,
         (bc & 0xff) / 255.f
       };
-      Mesh m = meshTranslateCopy(&baseCube, grid.cells[i].translateVal);
       shaderUniformVec3(&mainShader, "colorUni", color);
-      meshDraw(&m, &mainShader);
+      meshDrawTranslated(&baseCube, &mainShader, grid.cells[i].translateVal);
     }
 
-    shaderUniformVec3(&mainShader, "colorUni", (vec3){1.f, 1.f, 1.f});
-    meshDraw(&ant.me, &mainShader);
+    // Draw boundaries
+    meshDraw(&boundaryCube, &boundaryShader);
 
     glEnable(GL_CULL_FACE);
 

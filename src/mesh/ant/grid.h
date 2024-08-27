@@ -19,7 +19,7 @@ struct Cell {
   enum BlockColor color;
 };
 
-typedef struct{
+typedef struct {
   struct Cell* cells;
   size_t sz;
   u32 idx;

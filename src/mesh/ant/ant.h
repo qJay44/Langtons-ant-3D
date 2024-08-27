@@ -5,30 +5,31 @@
 #include "grid.h"
 
 #define CUBE_SIZE 0.1f
+#define STEP_SIZE (CUBE_SIZE * 2.f)
 
 enum Direction : u8 {
-  FORWARD, BACK, LEFT, RIGHT,
-  UP, DOWN
+  FORWARD, BACKWARD, LEFT, RIGHT,
+  UPWARD, DOWNWARD
 };
 
 typedef struct {
-  enum Direction dir;
+  vec3s origin;
   vec3s pos;
-  float stepSize;
-  Mesh me;
+  enum Direction dir;
+  Mesh mesh;
   u32 steps;
 } Ant;
 
-[[nodiscard]] Ant antCreate(vec3s pos, float stepSize, Mesh representation);
+[[nodiscard]] Ant antCreate(vec3s pos, Mesh representation);
 
 
-void antPlace(Ant* self, enum BlockColor* color);
-void antRotateLeft(Ant* self);
-void antRotateRight(Ant* self);
-void antRotateFront(Ant* self);
-void antRotateRear(Ant* self);
+void antPlace(Ant* self, struct Cell* cell);
 void antMove(Ant* self);
 void antUpdate(Grid* grid, Ant* self);
+void antRotateLeft(Ant* self);
+void antRotateRight(Ant* self);
+void antRotateForward(Ant* self);
+void antRotateBackwards(Ant* self);
 
 #endif
 

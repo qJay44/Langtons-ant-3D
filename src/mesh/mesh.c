@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-#include "cglm/affine-pre.h"
+#include "cglm/struct/affine-pre.h"
 #include "cglm/struct/mat4.h"
 
 #include "shader.h"
@@ -70,17 +70,17 @@ Mesh meshCreateCube(float size, vec3s pos, vec3s color, float scale) {
 
   GLuint indicesStack[36] = {
 	  0, 1, 2,
-	  0, 2, 3,
-	  0, 4, 7,
-	  0, 7, 3,
-	  3, 7, 6,
-	  3, 6, 2,
-	  2, 6, 5,
-	  2, 5, 1,
-	  1, 5, 4,
-	  1, 4, 0,
-	  4, 5, 6,
-	  4, 6, 7
+    2, 3, 0,
+    0, 4, 7,
+    7, 3, 0,
+    3, 7, 6,
+    6, 2, 3,
+    2, 6, 5,
+    5, 1, 2,
+    1, 5, 4,
+    4, 0, 1,
+    4, 5, 6,
+    6, 7, 4
   };
   size_t indSize = sizeof(indicesStack);
   GLuint* indices = malloc(indSize);
@@ -115,13 +115,6 @@ void meshTranslateZ(Mesh* self, float z) {
   glm_translate_z(self->mat.raw, z);
 }
 
-Mesh meshTranslateCopy(const Mesh* mesh, vec3s v) {
-  Mesh m = *mesh;
-  glm_translate(m.mat.raw, v.raw);
-
-  return m;
-}
-
 void meshDraw(Mesh* self, const Shader* shader) {
   vaoBind(&self->vao);
 
@@ -129,6 +122,18 @@ void meshDraw(Mesh* self, const Shader* shader) {
   shaderUniformMat4(shader, "cam", _gCamera.mat.raw);
 
   shaderUniformMat4(shader, "model", self->mat.raw);
+  glDrawElements(GL_TRIANGLES, self->indSize / sizeof(self->indices[0]), GL_UNSIGNED_INT, 0);
+
+  vaoUnbind();
+}
+
+void meshDrawTranslated(Mesh* self, const Shader* shader, vec3s t) {
+  vaoBind(&self->vao);
+
+  shaderUniformVec3(shader, "camPos", _gCamera.position.raw);
+  shaderUniformMat4(shader, "cam", _gCamera.mat.raw);
+
+  shaderUniformMat4(shader, "model", glms_translate(self->mat, t).raw);
   glDrawElements(GL_TRIANGLES, self->indSize / sizeof(self->indices[0]), GL_UNSIGNED_INT, 0);
 
   vaoUnbind();
