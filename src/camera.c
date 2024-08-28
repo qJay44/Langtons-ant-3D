@@ -60,7 +60,7 @@ void cameraMoveDown() {
 }
 
 void cameraSetIncreasedSpeed() {
-  _gCamera.speed = 4.f;
+  _gCamera.speed = 10.f;
 }
 
 void cameraSetNormalSpeed() {

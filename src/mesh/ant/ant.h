@@ -12,11 +12,12 @@ enum Direction : u8 {
   UPWARD, DOWNWARD
 };
 
-typedef struct {
+typedef struct Ant {
   vec3s origin;
   vec3s pos;
   enum Direction dir;
   Mesh mesh;
+  void (*rule[5])(struct Ant*);
   u32 steps;
 } Ant;
 

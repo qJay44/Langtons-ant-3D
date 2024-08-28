@@ -1,5 +1,6 @@
 #include "utils.h"
 
+#include <cglm/types-struct.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -44,5 +45,13 @@ char* readFile(const char* path, size_t* outSize) {
   return buf;
 
   fclose(fptr);
+}
+
+vec3s hexToVec3sColor(u32 hex) {
+  return (vec3s) {
+    (hex >> 16) / 255.f,
+    ((hex >> 8) & 0xff) / 255.f,
+    (hex & 0xff) / 255.f
+  };
 }
 

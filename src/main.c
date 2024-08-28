@@ -7,7 +7,6 @@
 #include <windows.h>
 
 #include "cglm/types-struct.h"
-#include "cglm/affine-pre.h"
 
 #include "camera.h"
 #include "inputs.h"
@@ -65,6 +64,15 @@ int main() {
   glViewport(0, 0, _gState.winWidth, _gState.winHeight);
   glfwSetFramebufferSizeCallback(window, frameBufferSizeCallback);
 
+  srand(time(NULL));
+  const vec3s colors[5] = {
+    (vec3s) {1.000f, 0.745f, 0.043f}, // #ffbe0b
+    (vec3s) {0.984f, 0.337f, 0.027f}, // #fb5607
+    (vec3s) {1.000f, 0.000f, 0.431f}, // #ff006e
+    (vec3s) {0.513f, 0.219f, 0.925f}, // #8338ec
+    (vec3s) {0.227f, 0.525f, 1.000f}, // #3a86ff
+  };
+
   vec4s lightColor = (vec4s){1.f, 1.f, 1.f, 1.f};
   vec3s lightPos = (vec3s){0.5f, 0.5f, 0.5f};
   vec3s bgColor = (vec3s){0.07f, 0.13f, 0.17f};
@@ -78,7 +86,7 @@ int main() {
   Ant ant = antCreate((vec3s)center, baseCube);
   Grid grid = gridCreate(1);
 
-  Mesh boundaryCube = meshCreateCube(CUBE_SIZE * GRID_DIM_SIZE, center, (vec3s){1.f, 0.f, 0.f}, 1.f);
+  Mesh boundaryCube = meshCreateCube(GRID_DIM_SIZE, center, (vec3s){1.f, 0.f, 0.f}, 1.f);
 
   double titleTimer = glfwGetTime();
   double prevTime = titleTimer;
@@ -141,13 +149,7 @@ int main() {
     meshDraw(&ant.mesh, &mainShader);
 
     for (u32 i = 0; i < grid.idx; i++) {
-      enum BlockColor bc = grid.cells[i].color;
-      vec3 color = {
-        (bc >> 16) / 255.f,
-        ((bc >> 8) & 0xff) / 255.f,
-        (bc & 0xff) / 255.f
-      };
-      shaderUniformVec3(&mainShader, "colorUni", color);
+      shaderUniformVec3(&mainShader, "colorUni", colors[grid.cells[i].bci].raw);
       meshDrawTranslated(&baseCube, &mainShader, grid.cells[i].translateVal);
     }
 

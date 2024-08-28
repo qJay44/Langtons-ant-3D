@@ -5,18 +5,20 @@
 
 #define IX(x, y, z) ((x) + (y) * GRID_DIM_SIZE + (z) * GRID_DIM_SIZE * GRID_DIM_SIZE)
 
-enum BlockColor : u32 {
-  BLOCK_COLOR1 = 0xffbe0b, // #ffbe0b
-  BLOCK_COLOR2 = 0xfb5607, // #fb5607
-  BLOCK_COLOR3 = 0xff006e, // #ff006e
-  BLOCK_COLOR4 = 0x8338ec, // #8338ec
-  BLOCK_COLOR5 = 0x3a86ff, // #3a86ff
+extern vec3s colors[5];
+
+enum BlockColorIndex : u8 {
+  BLOCK_COLOR_IDX_0,
+  BLOCK_COLOR_IDX_1,
+  BLOCK_COLOR_IDX_2,
+  BLOCK_COLOR_IDX_3,
+  BLOCK_COLOR_IDX_4,
 };
 
 struct Cell {
   vec3s translateVal;
   u32 idx;
-  enum BlockColor color;
+  enum BlockColorIndex bci;
 };
 
 typedef struct {

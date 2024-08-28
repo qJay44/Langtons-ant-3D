@@ -1,8 +1,7 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#define MAX(a,b) ((a) > (b) ? (a) : (b))
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#include <cglm/types-struct.h>
 
 /**
  * @param path A path to a file
@@ -10,6 +9,8 @@
  * @return Returns dynamic array of characters (needs to be freed)
  */
 char* readFile(const char* path, size_t* outSize);
+
+vec3s hexToVec3sColor(u32 hex);
 
 #endif
 

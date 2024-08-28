@@ -4,45 +4,41 @@
 #include <cglm/struct/vec3.h>
 #include <cglm/util.h>
 #include <cglm/vec3.h>
+#include <stdlib.h>
 
-#define MAX_XYZ (u32)(GRID_DIM_SIZE / CUBE_SIZE)
+#define MAX_XYZ (u32)(GRID_DIM_SIZE / STEP_SIZE)
 
 Ant antCreate(vec3s pos, Mesh representation) {
-  Ant ant = {
+  static void (*moves[4])(struct Ant*) = {
+    &antRotateLeft,
+    &antRotateRight,
+    &antRotateForward,
+    &antRotateBackwards,
+  };
+
+  return (Ant) {
     .origin = pos,
     .pos = pos,
     .dir = FORWARD,
     .mesh = representation,
+    .rule = {
+      moves[rand() % 4],
+      moves[rand() % 4],
+      moves[rand() % 4],
+      moves[rand() % 4],
+      moves[rand() % 4]
+    },
     .steps = 0,
   };
-
-  return ant;
 }
 
 void antPlace(Ant* self, struct Cell* cell) {
-  enum BlockColor* color = &cell->color;
-  switch (*color) {
-    case BLOCK_COLOR1:
-      antRotateLeft(self);
-      *color = BLOCK_COLOR2;
-      break;
-    case BLOCK_COLOR2:
-      antRotateRight(self);
-      *color = BLOCK_COLOR3;
-      break;
-    case BLOCK_COLOR3:
-      antRotateForward(self);
-      *color = BLOCK_COLOR4;
-      break;
-    case BLOCK_COLOR4:
-      antRotateBackwards(self);
-      *color = BLOCK_COLOR5;
-      break;
-    case BLOCK_COLOR5:
-      antRotateBackwards(self);
-      *color = BLOCK_COLOR1;
-      break;
-  }
+  enum BlockColorIndex* color = &cell->bci;
+
+  self->rule[*color](self); // Apply rule
+  *color = (1 + *color) % 5; // Change color
+
+  // Translation vector from the origin to the current position
   glm_vec3_sub(self->pos.raw, self->origin.raw, cell->translateVal.raw);
 }
 
@@ -94,7 +90,7 @@ void antUpdate(Grid* grid, Ant *self) {
   }
 
   // If block doesn't exist
-  gridAdd(grid, (struct Cell){.translateVal = glms_vec3_sub(self->pos, self->origin), .idx = idx, .color = BLOCK_COLOR1});
+  gridAdd(grid, (struct Cell){.translateVal = glms_vec3_sub(self->pos, self->origin), .idx = idx, .bci = BLOCK_COLOR_IDX_0});
   antMove(self);
   antRotateRight(self);
 }
