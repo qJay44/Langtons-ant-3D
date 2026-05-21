@@ -18,8 +18,16 @@ typedef struct {
   Transformable mats;
 } Mesh;
 
-[[nodiscard]] Mesh meshCreatePN(float* vertices, size_t vertSize, GLuint* indices, size_t indSize);
-[[nodiscard]] Mesh meshCreateCubePN();
+typedef struct {
+  float* vertices;
+  GLuint* indices;
+  size_t vertSize;
+  size_t indSize;
+} MeshData;
+
+void meshLoadObjPN(const char* filepath, MeshData* outData);
+
+[[nodiscard]] Mesh meshCreatePN(const MeshData* data);
 
 void meshDraw(Mesh* self, const Camera* cam, Shader* shader);
 void meshDrawScreen(const Camera* cam, Shader* shader);

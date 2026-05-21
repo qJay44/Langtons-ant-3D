@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "GLBuffer.h"
+#include "fast_obj.h"
 #include "cglm/struct/mat4.h"
 
 static void setCameraUniforms(const Camera* cam, Shader* shader) {
@@ -16,10 +17,77 @@ static void setCameraUniforms(const Camera* cam, Shader* shader) {
   shaderSetUniformMat4f(shader, "u_camPV"     , glms_mat4_mul(cam->proj, cam->view).raw);
 }
 
-Mesh meshCreatePN(float* vertices, size_t vertSize, GLuint* indices, size_t indSize) {
+void meshLoadObjPN(const char* filepath, MeshData* outData) {
+  fastObjMesh* obj = fast_obj_read(filepath);
+  if (!obj) {
+    fprintf(stderr, "❌Failed to open OBJ: [%s]\n", filepath);
+    exit(EXIT_FAILURE);
+  }
+
+  u32 totalTriangles = 0;
+  for (u32 i = 0; i < obj->face_count; i++)
+    totalTriangles += obj->face_vertices[i] - 2;
+
+  u32 indicesCount = totalTriangles * 3;
+
+  outData->vertSize = indicesCount * 6 * sizeof(float);
+  outData->indSize  = indicesCount * sizeof(GLuint);
+
+  outData->vertices = malloc(outData->vertSize);
+  outData->indices  = malloc(outData->indSize);
+
+  if (!outData->vertices || !outData->indices) {
+    fprintf(stderr, "❌ Memory allocation failed while loading OBJ: [%s]\n", filepath);
+    exit(EXIT_FAILURE);
+  }
+
+  u32 vertexTracker = 0;
+  u32 indexTracker = 0;
+  u32 objIndexOffset = 0; // Exact position in the raw OBJ index pool
+
+  for (u32 i = 0; i < obj->face_count; i++) {
+    u32 faceVerts = obj->face_vertices[i];
+
+    // Fan triangulate polygons (safely turns quads/n-gons into multiple triangles)
+    for (u32 j = 0; j < faceVerts - 2; j++) {
+      u32 cornerIndices[3];
+      cornerIndices[0] = objIndexOffset;
+      cornerIndices[1] = objIndexOffset + j + 1;
+      cornerIndices[2] = objIndexOffset + j + 2;
+
+      for (u32 k = 0; k < 3; k++) {
+        fastObjIndex idx = obj->indices[cornerIndices[k]];
+
+        outData->vertices[vertexTracker + 0] = obj->positions[idx.p * 3 + 0];
+        outData->vertices[vertexTracker + 1] = obj->positions[idx.p * 3 + 1];
+        outData->vertices[vertexTracker + 2] = obj->positions[idx.p * 3 + 2];
+
+        if (idx.n) {
+          outData->vertices[vertexTracker + 3] = obj->normals[idx.n * 3 + 0];
+          outData->vertices[vertexTracker + 4] = obj->normals[idx.n * 3 + 1];
+          outData->vertices[vertexTracker + 5] = obj->normals[idx.n * 3 + 2];
+        } else {
+          outData->vertices[vertexTracker + 3] = 0.f;
+          outData->vertices[vertexTracker + 4] = 0.f;
+          outData->vertices[vertexTracker + 5] = 0.f;
+        }
+
+        outData->indices[indexTracker] = indexTracker;
+
+        indexTracker++;
+        vertexTracker += 6;
+      }
+    }
+    objIndexOffset += faceVerts;
+  }
+
+  fast_obj_destroy(obj);
+}
+
+Mesh meshCreatePN(const MeshData* data) {
   Mesh mesh;
-  mesh.vertices = vertSize / sizeof(vertices[0]);
-  mesh.indices = indSize / sizeof(indices[0]);
+  mesh.vertices = data->vertSize / sizeof(data->vertices[0]);
+  mesh.indices = data->indSize / sizeof(data->indices[0]);
   mesh.mats.trans = glms_mat4_identity();
   mesh.mats.rot   = glms_mat4_identity();
   mesh.mats.scale = glms_mat4_identity();
@@ -32,8 +100,8 @@ Mesh meshCreatePN(float* vertices, size_t vertSize, GLuint* indices, size_t indS
 
   vaoBind(&mesh.vao);
 
-  GLBuffer_allocate(&mesh.vbo, vertices, vertSize, GL_STATIC_DRAW);
-  if (useEBO) GLBuffer_allocate(&mesh.ebo, indices, indSize, GL_STATIC_DRAW);
+  GLBuffer_allocate(&mesh.vbo, data->vertices, data->vertSize, GL_STATIC_DRAW);
+  if (useEBO) GLBuffer_allocate(&mesh.ebo, data->indices, data->indSize, GL_STATIC_DRAW);
 
   vaoBind(&mesh.vao);
   GLBuffer_bind(&mesh.vbo);
@@ -49,60 +117,6 @@ Mesh meshCreatePN(float* vertices, size_t vertSize, GLuint* indices, size_t indS
   // No need to unbound EBO (VAO unbinding is enough)
 
   return mesh;
-}
-
-Mesh meshCreateCubePN() {
-  float vertices[144] = {
-    // Position (x, y, z)       // Normal (x, y, z)
-    // FRONT FACE (Z+)
-    -1.0f, -1.0f,  1.0f,         0.0f,  0.0f,  1.0f, // 0
-     1.0f, -1.0f,  1.0f,         0.0f,  0.0f,  1.0f, // 1
-     1.0f,  1.0f,  1.0f,         0.0f,  0.0f,  1.0f, // 2
-    -1.0f,  1.0f,  1.0f,         0.0f,  0.0f,  1.0f, // 3
-
-    // BACK FACE (Z-)
-     1.0f, -1.0f, -1.0f,         0.0f,  0.0f, -1.0f, // 4
-    -1.0f, -1.0f, -1.0f,         0.0f,  0.0f, -1.0f, // 5
-    -1.0f,  1.0f, -1.0f,         0.0f,  0.0f, -1.0f, // 6
-     1.0f,  1.0f, -1.0f,         0.0f,  0.0f, -1.0f, // 7
-
-    // LEFT FACE (X-)
-    -1.0f, -1.0f, -1.0f,        -1.0f,  0.0f,  0.0f, // 8
-    -1.0f, -1.0f,  1.0f,        -1.0f,  0.0f,  0.0f, // 9
-    -1.0f,  1.0f,  1.0f,        -1.0f,  0.0f,  0.0f, // 10
-    -1.0f,  1.0f, -1.0f,        -1.0f,  0.0f,  0.0f, // 11
-
-    // RIGHT FACE (X+)
-     1.0f, -1.0f,  1.0f,         1.0f,  0.0f,  0.0f, // 12
-     1.0f, -1.0f, -1.0f,         1.0f,  0.0f,  0.0f, // 13
-     1.0f,  1.0f, -1.0f,         1.0f,  0.0f,  0.0f, // 14
-     1.0f,  1.0f,  1.0f,         1.0f,  0.0f,  0.0f, // 15
-
-    // TOP FACE (Y+)
-    -1.0f,  1.0f,  1.0f,         0.0f,  1.0f,  0.0f, // 16
-     1.0f,  1.0f,  1.0f,         0.0f,  1.0f,  0.0f, // 17
-     1.0f,  1.0f, -1.0f,         0.0f,  1.0f,  0.0f, // 18
-    -1.0f,  1.0f, -1.0f,         0.0f,  1.0f,  0.0f, // 19
-
-    // BOTTOM FACE (Y-)
-    -1.0f, -1.0f, -1.0f,         0.0f, -1.0f,  0.0f, // 20
-     1.0f, -1.0f, -1.0f,         0.0f, -1.0f,  0.0f, // 21
-     1.0f, -1.0f,  1.0f,         0.0f, -1.0f,  0.0f, // 22
-    -1.0f, -1.0f,  1.0f,         0.0f, -1.0f,  0.0f,  // 23
-  };
-  size_t vertSize = sizeof(vertices);
-
-  GLuint indices[36] = {
-    0,  1,  2,    2,  3,  0,  // Front
-    4,  5,  6,    6,  7,  4,  // Back
-    8,  9,  10,   10, 11, 8,  // Left
-    12, 13, 14,   14, 15, 12, // Right
-    16, 17, 18,   18, 19, 16, // Top
-    20, 21, 22,   22, 23, 20  // Bottom
-  };
-  size_t indSize = sizeof(indices);
-
-  return meshCreatePN(vertices, vertSize, indices, indSize);
 }
 
 void meshDraw(Mesh* self, const Camera* cam, Shader* shader) {

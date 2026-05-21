@@ -80,9 +80,17 @@ int main() {
   Camera camera = cameraCreateDefault();
   activeCamera = &camera;
 
-  Mesh baseCube = meshCreateCubePN();
-  MeshInstanced antVoxels = meshInstancedCreateCubePN();
   Ant ant = antCreateDefault();
+  MeshInstanced antVoxels;
+  {
+    MeshData data;
+    meshLoadObjPN("res/obj/BeveledCube.obj", &data);
+
+    antVoxels = meshInstancedCreatePN(&data);
+
+    free(data.vertices);
+    free(data.indices);
+  }
 
   double titleTimer = glfwGetTime();
   double prevTime = titleTimer;
@@ -121,7 +129,6 @@ int main() {
     glClearColor(bgColor[0], bgColor[1], bgColor[2], 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    meshDraw(&baseCube, activeCamera, &cubeShader);
     meshInstancedDraw(&antVoxels, activeCamera, &voxelShader);
 
     // ----------------------------------------------------------- //

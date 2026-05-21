@@ -18,7 +18,7 @@ target_include_directories(GLAD PUBLIC ${GLAD_PATH}/include)
 
 # ===== Main ====================================================== #
 
-file(GLOB_RECURSE SOURCES ${PROJECT_SOURCE_DIR}/src/*.c)
+file(GLOB_RECURSE SOURCES ${PROJECT_SOURCE_DIR}/src/*.c ${FAST_OBJ_PATH}/fast_obj.c)
 add_executable(${PROJECT_NAME} ${SOURCES})
 
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wuninitialized -Wextra -Wmaybe-uninitialized)
@@ -29,6 +29,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   ${CGLM_PATH}/include
   ${STB_PATH}/include
   ${PROJECT_SOURCE_DIR}/include
+  ${FAST_OBJ_PATH}
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE glfw GLAD m)
