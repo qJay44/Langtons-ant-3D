@@ -1,29 +1,35 @@
 include(./.env.cmake OPTIONAL RESULT_VARIABLE LOCAL_ENV)
-
 message(STATUS "Local .env.cmake: ${LOCAL_ENV}")
 
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.21)
 
-set(CMAKE_C_COMPILER ${MINGW64_PATH}/gcc.exe)
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/Run)
 
 project(MyProject VERSION 1.0)
 
-file(GLOB_RECURSE SOURCES ${PROJECT_SOURCE_DIR}/src/*.c ${GLAD_PATH}/src/glad.c)
-set_source_files_properties(${GLAD_PATH}/src/glad.c PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+find_package(glfw3 REQUIRED)
 
+# ===== GLAD ====================================================== #
+
+add_library(GLAD STATIC ${GLAD_PATH}/src/gl.c)
+target_include_directories(GLAD PUBLIC ${GLAD_PATH}/include)
+
+# ===== Main ====================================================== #
+
+file(GLOB_RECURSE SOURCES ${PROJECT_SOURCE_DIR}/src/*.c)
 add_executable(${PROJECT_NAME} ${SOURCES})
-set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/Run)
 
-target_precompile_headers(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/src/pch.h)
+target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wuninitialized -Wextra -Wmaybe-uninitialized)
 
-target_include_directories(${PROJECT_NAME} PUBLIC
-  ${GLAD_PATH}/include
-  ${GLFW_PATH}/include
+target_precompile_headers(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src/pch.h)
+
+target_include_directories(${PROJECT_NAME} PRIVATE
   ${CGLM_PATH}/include
+  ${STB_PATH}/include
+  ${PROJECT_SOURCE_DIR}/include
 )
 
-include_directories(SYSTEM ${CGLM_PATH}/include)
-
-target_link_directories(${PROJECT_NAME} PUBLIC ${GLFW_PATH}/lib-mingw-w64 ${JSONC_PATH}/lib)
-target_link_libraries(${PROJECT_NAME} PUBLIC glfw3)
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw GLAD m)
 

@@ -1,41 +1,37 @@
+#include <GLFW/glfw3.h>
 #include <cglm/mat4.h>
 #include <cglm/struct/mat4.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <time.h>
-#include <windows.h>
+
+#ifdef _WIN32
+  #include <direct.h>
+  #define CHDIR(p) _chdir(p);
+#else
+  #include <unistd.h>
+  #define CHDIR(p) chdir(p);
+#endif
+
 
 #include "cglm/types-struct.h"
 
-#include "camera.h"
 #include "inputs.h"
-#include "mesh/ant/ant.h"
-#include "mesh/ant/grid.h"
-#include "mesh/mesh.h"
-#include "mesh/shader.h"
-#include "mesh/ant/ant.h"
+#include "engine/mesh/mesh.h"
+#include "engine/camera.h"
+#include "engine/mesh/meshInstanced.h"
+#include "ant/ant.h"
+#include "ant/grid.h"
 
-struct State _gState = {
-  .nearPlane = 0.1f,
-  .farPlane = 100.f,
-  .winWidth = 1200,
-  .winHeight = 720,
-  .time = 0.f,
-};
-
-// Called when the window resized
-void frameBufferSizeCallback(GLFWwindow* window, int width, int height) {
-  glViewport(0, 0, width, height);
-  glfwSetCursorPos(window, width * 0.5f, height * 0.5f);
-  _gState.winWidth = width;
-  _gState.winHeight = height;
-}
+struct Context ctx;
 
 int main() {
   // Change cwd to where "src" directory located (since launching the executable always from the directory where its located)
-  SetCurrentDirectory("../../../src");
+  CHDIR("../../..");
   srand(time(NULL));
+
+  const int initWidth = 1600;
+  const int initHeight = 900;
 
   // GLFW init
   glfwInit();
@@ -44,124 +40,91 @@ int main() {
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
   // Window init
-  GLFWwindow* window = glfwCreateWindow(_gState.winWidth, _gState.winHeight, "LearnOpenGL", NULL, NULL);
+  GLFWwindow* window = glfwCreateWindow(initWidth, initHeight, "MyProgram", NULL, NULL);
   if (!window) {
     printf("Failed to create GFLW window\n");
     glfwTerminate();
     return EXIT_FAILURE;
   }
   glfwMakeContextCurrent(window);
-  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
-  glfwSetCursorPos(window, _gState.winWidth * 0.5f, _gState.winHeight * 0.5f);
+  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  glfwSetCursorPos(window, initWidth * 0.5f, initHeight * 0.5f);
+  glfwSetCursorPosCallback(window, cursorPosCallback);
+
+  ctx.window = window;
 
   // GLAD init
-  int version = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
+  int version = gladLoadGL((GLADloadfunc)glfwGetProcAddress);
   if (!version) {
     printf("Failed to initialize GLAD\n");
     return EXIT_FAILURE;
   }
 
-  glViewport(0, 0, _gState.winWidth, _gState.winHeight);
-  glfwSetFramebufferSizeCallback(window, frameBufferSizeCallback);
+  glViewport(0, 0, initWidth, initHeight);
 
-  srand(time(NULL));
-  const vec3s colors[5] = {
-    (vec3s) {1.000f, 0.745f, 0.043f}, // #ffbe0b
-    (vec3s) {0.984f, 0.337f, 0.027f}, // #fb5607
-    (vec3s) {1.000f, 0.000f, 0.431f}, // #ff006e
-    (vec3s) {0.513f, 0.219f, 0.925f}, // #8338ec
-    (vec3s) {0.227f, 0.525f, 1.000f}, // #3a86ff
-  };
+  vec3 lightColor = {1.f  , 1.f,   1.f  };
+  vec3 bgColor    = {0.07f, 0.13f, 0.17f};
 
-  vec4s lightColor = (vec4s){1.f, 1.f, 1.f, 1.f};
-  vec3s lightPos = (vec3s){0.5f, 0.5f, 0.5f};
-  vec3s bgColor = (vec3s){0.07f, 0.13f, 0.17f};
+  shadersFolder = "res/shaders";
+  Shader cubeShader = shaderCreate("cube.vert", "cube.frag", NULL);
+  Shader voxelShader = shaderCreate("voxel.vert", "voxel.frag", NULL);
+  shaderSetUniform3f(&cubeShader, "u_lightColor", lightColor);
+  shaderSetUniform3f(&voxelShader, "u_lightColor", lightColor);
 
-  Shader mainShader = shaderCreate("shaders/main.vert", "shaders/main.frag", "shaders/main.geom");
-  Shader boundaryShader = shaderCreate("shaders/main.vert", "shaders/boundary.frag", "shaders/boundary.geom");
-  shaderUniformVec4(&mainShader, "lightColor", lightColor.raw);
+  Camera camera = cameraCreateDefault();
+  activeCamera = &camera;
 
-  vec3s center = {20.f, 20.f, 20.f};
-  Mesh baseCube = meshCreateCube(CUBE_SIZE, center, (vec3s){1.f, 1.f, 1.f}, 1.f);
-  Ant ant = antCreate((vec3s)center, baseCube);
-  Grid grid = gridCreate(1);
-
-  Mesh boundaryCube = meshCreateCube(GRID_DIM_SIZE, center, (vec3s){1.f, 0.f, 0.f}, 1.f);
+  Mesh baseCube = meshCreateCubePN();
+  MeshInstanced antVoxels = meshInstancedCreateCubePN();
+  Ant ant = antCreateDefault();
 
   double titleTimer = glfwGetTime();
   double prevTime = titleTimer;
   double currTime = prevTime;
   double dt;
-  bool wasUnfocused = false;
 
   glEnable(GL_DEPTH_TEST);
-  glEnable(GL_MULTISAMPLE);
-
   glEnable(GL_CULL_FACE);
-  glCullFace(GL_FRONT);
-  glFrontFace(GL_CW);
+
+  glCullFace(GL_BACK);
+  glFrontFace(GL_CCW);
+
+  // Keep it simple, because no windows resize callbacks
+  const vec2s winCenter = getWinCenter();
 
   // Render loop
   while (!glfwWindowShouldClose(window)) {
-    static double mouseX, mouseY;
+    // ----- Updates --------------------------------------------- //
 
-    if (glfwGetWindowAttrib(window, GLFW_FOCUSED)) {
-      if (!wasUnfocused)
-        glfwGetCursorPos(window, &mouseX, &mouseY);
-      wasUnfocused = false;
-    } else {
-      wasUnfocused = true;
-    }
-
-    glfwSetCursorPos(window, _gState.winWidth * 0.5f, _gState.winHeight * 0.5f);
+    glfwSetCursorPos(window, winCenter.x, winCenter.y);
 
     currTime = glfwGetTime();
     dt = currTime - prevTime;
     prevTime = currTime;
-    _gState.time = currTime;
 
-    // Update window title every 0.3 seconds
-    if (glfwGetTime() - titleTimer >= 0.3) {
-      char title[256];
-      u16 fps = 1. / dt;
-      sprintf(title, "FPS: %d / %f ms", fps, dt);
-      glfwSetWindowTitle(window, title);
-      titleTimer = currTime;
-    }
+    ctx.time += (float)dt;
 
-    glClearColor(bgColor.x, bgColor.y, bgColor.z, 1.f);
+    inputsMoveCamera(activeCamera, dt);
+    cameraUpdate(activeCamera);
+
+    antUpdate(&ant);
+    gridUpdateMeshBuffers(&antVoxels);
+
+    // ----- Draw ------------------------------------------------ //
+
+    glClearColor(bgColor[0], bgColor[1], bgColor[2], 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    processInput(window);
+    meshDraw(&baseCube, activeCamera, &cubeShader);
+    meshInstancedDraw(&antVoxels, activeCamera, &voxelShader);
 
-    cameraMove(mouseX, mouseY);
-    cameraUpdate(dt);
-    antUpdate(&grid, &ant);
-
-    glDisable(GL_CULL_FACE);
-
-    // Draw the base cube
-    /* shaderUniformVec3(&mainShader, "colorUni", (vec3){1.f, 1.f, 1.f}); */
-    /* meshDraw(&baseCube, &mainShader); */
-
-    // Draw ant
-    shaderUniformVec3(&mainShader, "colorUni", (vec3){1.f, 1.f, 1.f});
-    meshDraw(&ant.mesh, &mainShader);
-
-    for (u32 i = 0; i < grid.idx; i++) {
-      shaderUniformVec3(&mainShader, "colorUni", colors[grid.cells[i].bci].raw);
-      meshDrawTranslated(&baseCube, &mainShader, grid.cells[i].translateVal);
-    }
-
-    // Draw boundaries
-    meshDraw(&boundaryCube, &boundaryShader);
-
-    glEnable(GL_CULL_FACE);
+    // ----------------------------------------------------------- //
 
     glfwSwapBuffers(window);
     glfwPollEvents();
   }
 
+  // Maybe call clears here
   glfwTerminate();
 
   printf("Done\n");

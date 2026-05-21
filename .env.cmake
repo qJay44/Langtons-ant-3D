@@ -1,4 +1,3 @@
-set(MINGW64_PATH "C:/Users/gerku/Documents/mingw64/bin")
-set(GLAD_PATH "C:/Users/gerku/Documents/glad")
-set(GLFW_PATH "C:/Users/gerku/Documents/glfw-3.3.9")
-set(CGLM_PATH "C:/Users/gerku/Documents/cglm")
+set(GLAD_PATH "$ENV{HOME}/Libs/glad")
+set(CGLM_PATH "$ENV{HOME}/Libs/cglm-0.9.6")
+set(STB_PATH  "$ENV{HOME}/Libs/stb")

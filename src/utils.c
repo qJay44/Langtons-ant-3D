@@ -1,57 +1,41 @@
 #include "utils.h"
 
-#include <cglm/types-struct.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#define READ_CHARS_LENGTH 0xff
+char* readFile(const char* path) {
+  FILE* file = fopen(path, "rb");
 
-char* readFile(const char* path, size_t* outSize) {
-  FILE* fptr;
-  fopen_s(&fptr, path, "r");
-
-  size_t sz = sizeof(char) * READ_CHARS_LENGTH;
-  char* buf = malloc(sz);
-
-  if (fptr) {
-    u32 idx = 0;
-    while (!feof(fptr)) {
-      if (idx == sz / sizeof(char)) {
-        char* newBuf = malloc(sz * 2);
-        for (u32 i = 0; i < idx; i++)
-          newBuf[i] = buf[i];
-        free(buf);
-        sz *= 2;
-        buf = newBuf;
-      }
-      buf[idx++] = fgetc(fptr);
-    }
-
-    // Cut extra memory
-    char* newBuf = malloc(sizeof(char) * idx);
-    for (u32 i = 0; i < idx; i++)
-      newBuf[i] = buf[i];
-    free(buf);
-    sz = sizeof(char) * idx;
-    buf = newBuf;
-
-    if (outSize)
-      *outSize = sz;
-  } else {
-    printf("Not able to open the file [%s]\n", path);
-    free(buf);
+  if (!file) {
+    fprintf(stderr, "❌Failed to open file: [%s]\n", path);
+    exit(EXIT_FAILURE);
+    return NULL;
   }
 
+  // Check length
+  fseek(file, 0, SEEK_END);
+  long length = ftell(file);
+  if (length < 0) {
+    fprintf(stderr, "⚠️Nothing to read from file: [%s]\n", path);
+    fclose(file);
+    return NULL;
+  }
+
+  // Back to the beginning of the file
+  fseek(file, 0, SEEK_SET);
+
+  char* buf = (char*)malloc(length + 1); // +1 for the null terminator '\0'
+  if (!buf) {
+    fprintf(stderr, "❌Memory allocation failed for file: [%s]\n", path);
+    exit(EXIT_FAILURE);
+    return NULL;
+  }
+
+  size_t bytesRead = fread(buf, 1, length, file);
+  buf[bytesRead] = '\0';
+
+  fclose(file);
+
   return buf;
-
-  fclose(fptr);
-}
-
-vec3s hexToVec3sColor(u32 hex) {
-  return (vec3s) {
-    (hex >> 16) / 255.f,
-    ((hex >> 8) & 0xff) / 255.f,
-    (hex & 0xff) / 255.f
-  };
 }
 
