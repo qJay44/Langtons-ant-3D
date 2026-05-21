@@ -4,6 +4,7 @@
 
 #include "GLBuffer.h"
 #include "cglm/struct/mat4.h"
+#include "Context.h"
 
 static void setCameraUniforms(const Camera* cam, Shader* shader) {
   shaderSetUniform1f   (shader, "u_camNear"   , cam->near);
@@ -114,8 +115,13 @@ void meshInstancedDraw(MeshInstanced* self, const Camera* cam, Shader* shader) {
 
   setCameraUniforms(cam, shader);
 
+  if (ctx.wireframeMode)
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
   shaderUse(shader);
   glDrawElementsInstanced(GL_TRIANGLES, self->indices, GL_UNSIGNED_INT, 0, self->instanceCount);
+
+  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
   vaoUnbind();
 }

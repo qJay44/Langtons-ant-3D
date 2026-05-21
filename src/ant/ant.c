@@ -30,7 +30,7 @@ static void antMove(Ant* self) {
 
 static void antTurn(Ant* self, AntTurn turn) {
   ivec3s oldDir = self->dir;
-  ivec3s right = ivec3s_cross(self->dir, self->up); 
+  ivec3s right = ivec3s_cross(self->dir, self->up);
 
   switch (turn) {
     case TURN_LEFT:
@@ -67,10 +67,17 @@ void antUpdate(Ant* self) {
       antTurn(self, TURN_UP);
       break;
     case 3:
-      gridSetVoxel(self->pos, 0);
+      gridSetVoxel(self->pos, 4);
       antTurn(self, TURN_DOWN);
       break;
-
+    case 4:
+      gridSetVoxel(self->pos, 5);
+      antTurn(self, TURN_UP);
+      break;
+    case 5:
+      gridSetVoxel(self->pos, 0);
+      antTurn(self, TURN_LEFT);
+      break;
   }
 
   antMove(self);

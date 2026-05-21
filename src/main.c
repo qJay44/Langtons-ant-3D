@@ -50,8 +50,11 @@ int main() {
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwSetCursorPos(window, initWidth * 0.5f, initHeight * 0.5f);
   glfwSetCursorPosCallback(window, cursorPosCallback);
+  glfwSetKeyCallback(window, keyCallback);
 
   ctx.window = window;
+  ctx.wireframeMode = false;
+  ctx.time = 0.f;
 
   // GLAD init
   int version = gladLoadGL((GLADloadfunc)glfwGetProcAddress);
@@ -63,13 +66,16 @@ int main() {
   glViewport(0, 0, initWidth, initHeight);
 
   vec3 lightColor = {1.f  , 1.f,   1.f  };
+  vec3 lightDir   = {0.57735f, 0.57735f, 0.57735f}; // From source to light
   vec3 bgColor    = {0.07f, 0.13f, 0.17f};
 
   shadersFolder = "res/shaders";
   Shader cubeShader = shaderCreate("cube.vert", "cube.frag", NULL);
   Shader voxelShader = shaderCreate("voxel.vert", "voxel.frag", NULL);
   shaderSetUniform3f(&cubeShader, "u_lightColor", lightColor);
+  shaderSetUniform3f(&cubeShader, "u_lightDir", lightDir);
   shaderSetUniform3f(&voxelShader, "u_lightColor", lightColor);
+  shaderSetUniform3f(&voxelShader, "u_lightDir", lightDir);
 
   Camera camera = cameraCreateDefault();
   activeCamera = &camera;

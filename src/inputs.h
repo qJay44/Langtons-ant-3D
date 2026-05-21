@@ -20,6 +20,19 @@ static inline void inputsMoveCamera(Camera* camera, float dt) {
   else if (glfwGetKey(ctx.window, GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE) camera->speedMult = 1.f;
 }
 
+static inline void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+  (void)window;
+  (void)scancode;
+  (void)mods;
+
+  switch (key) {
+    case GLFW_KEY_1:
+      if (action == GLFW_PRESS)
+        ctx.wireframeMode = !ctx.wireframeMode;
+      break;
+  }
+}
+
 static inline void cursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
   (void)window; // Handling unused varible warning
   cameraRotate(activeCamera, (vec2s){{(float)xpos, (float)ypos}});
