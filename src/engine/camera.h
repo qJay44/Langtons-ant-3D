@@ -2,13 +2,17 @@
 #define CAMERA_H
 
 #include "cglm/types-struct.h"
+#include "shader.h"
 
 typedef struct {
   vec3s position, up, orientation;
-  float yaw, pitch, speed, speedMult, sensitivity, fov, near, far;
+  float yaw, pitch, fov; // Radians
+  float speed, speedMult, sensitivity, near, far;
 
   mat4s proj;
   mat4s view;
+  mat4s pv;
+  mat4s pvInv;
 } Camera;
 
 extern Camera* activeCamera;
@@ -23,6 +27,7 @@ void cameraMoveRight(Camera* self, float dt);
 void cameraMoveUp(Camera* self, float dt);
 void cameraMoveDown(Camera* self, float dt);
 void cameraRotate(Camera* self, vec2s mousePos);
+void cameraSetUniforms(const Camera* self, Shader* shader);
 
 #endif
 

@@ -3,24 +3,11 @@
 #include <stdio.h>
 
 #include "GLBuffer.h"
-#include "cglm/struct/mat4.h"
 #include "Context.h"
-
-static void setCameraUniforms(const Camera* cam, Shader* shader) {
-  shaderSetUniform1f   (shader, "u_camNear"   , cam->near);
-  shaderSetUniform1f   (shader, "u_camFar"    , cam->far);
-  shaderSetUniform1f   (shader, "u_camFov"    , cam->fov);
-  shaderSetUniform3f   (shader, "u_camPos"    , cam->position.raw);
-  shaderSetUniform3f   (shader, "u_camUp"     , cam->up.raw);
-  shaderSetUniformMat4f(shader, "u_camProj"   , cam->proj.raw);
-  shaderSetUniformMat4f(shader, "u_camView"   , cam->view.raw);
-  shaderSetUniformMat4f(shader, "u_camPV"     , glms_mat4_mul(cam->proj, cam->view).raw);
-}
 
 MeshInstanced meshInstancedCreatePN(const MeshData* data) {
   MeshInstanced mesh;
   mesh.indices = data->indSize / sizeof(data->indices[0]);
-  printf("%u\n", mesh.indices);
 
   vaoGen(&mesh.vao, 1);
   GLBuffer_gen(&mesh.vbo, GL_ARRAY_BUFFER, 1);
@@ -60,7 +47,7 @@ void meshInstancedDraw(MeshInstanced* self, const Camera* cam, Shader* shader) {
 
   vaoBind(&self->vao);
 
-  setCameraUniforms(cam, shader);
+  cameraSetUniforms(cam, shader);
 
   if (ctx.wireframeMode)
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);

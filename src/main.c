@@ -1,4 +1,3 @@
-#include <GLFW/glfw3.h>
 #include <cglm/mat4.h>
 #include <cglm/struct/mat4.h>
 #include <stdio.h>
@@ -18,6 +17,7 @@
 
 #include "inputs.h"
 #include "engine/mesh/mesh.h"
+#include "sun.h"
 #include "engine/camera.h"
 #include "engine/mesh/meshInstanced.h"
 #include "ant/ant.h"
@@ -54,7 +54,6 @@ int main() {
 
   ctx.window = window;
   ctx.wireframeMode = false;
-  ctx.time = 0.f;
 
   // GLAD init
   int version = gladLoadGL((GLADloadfunc)glfwGetProcAddress);
@@ -65,17 +64,12 @@ int main() {
 
   glViewport(0, 0, initWidth, initHeight);
 
-  vec3 lightColor = {1.f  , 1.f,   1.f  };
-  vec3 lightDir   = {0.57735f, 0.57735f, 0.57735f}; // From source to light
-  vec3 bgColor    = {0.07f, 0.13f, 0.17f};
+  Sun sun = sunCreateDefault();
 
   shadersFolder = "res/shaders";
-  Shader cubeShader = shaderCreate("cube.vert", "cube.frag", NULL);
+  Shader sunShader = shaderCreate("sun.vert", "sun.frag", NULL);
   Shader voxelShader = shaderCreate("voxel.vert", "voxel.frag", NULL);
-  shaderSetUniform3f(&cubeShader, "u_lightColor", lightColor);
-  shaderSetUniform3f(&cubeShader, "u_lightDir", lightDir);
-  shaderSetUniform3f(&voxelShader, "u_lightColor", lightColor);
-  shaderSetUniform3f(&voxelShader, "u_lightDir", lightDir);
+  sunSetUniforms(&sun, &voxelShader);
 
   Camera camera = cameraCreateDefault();
   activeCamera = &camera;
@@ -116,8 +110,6 @@ int main() {
     dt = currTime - prevTime;
     prevTime = currTime;
 
-    ctx.time += (float)dt;
-
     inputsMoveCamera(activeCamera, dt);
     cameraUpdate(activeCamera);
 
@@ -126,8 +118,15 @@ int main() {
 
     // ----- Draw ------------------------------------------------ //
 
-    glClearColor(bgColor[0], bgColor[1], bgColor[2], 1.f);
+    glClearColor(0.07f, 0.13f, 0.17f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+
+    sunDraw(&sun, activeCamera, &sunShader);
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
 
     meshInstancedDraw(&antVoxels, activeCamera, &voxelShader);
 

@@ -1,32 +1,28 @@
 #include "camera.h"
 
-#include <math.h>
-
 #include "cglm/struct/cam.h"
+#include "cglm/struct/mat4.h"
 #include "cglm/struct/vec2.h"
 #include "cglm/struct/vec3.h"
 #include "cglm/util.h"
 #include "Context.h"
+#include "utils.h"
 
 Camera* activeCamera = NULL;
 
 static void updateOrientation(Camera* self) {
-  self->orientation = (vec3s){{
-    cosf(self->yaw) * cosf(self->pitch),
-    sinf(self->pitch),
-    sinf(self->yaw) * cosf(self->pitch)}
-  };
+  self->orientation = getDirectionYawPitchRad(self->yaw, self->pitch);
 }
 
 Camera cameraCreateDefault() {
   Camera camera;
-  camera.position = (vec3s){{5.f, 5.f, 5.f}};
+  camera.position = (vec3s){{10.f, 10.f, 10.f}};
   camera.up = (vec3s){{0.f, 1.f, 0.f}};
-  camera.yaw = -90.f;
-  camera.pitch = -1.f;
+  camera.yaw = glm_rad(-120.f);
+  camera.pitch = glm_rad(-30.f);
   camera.speed = 10.f;
   camera.sensitivity = 2.f;
-  camera.fov = 90.f;
+  camera.fov = glm_rad(90.f);
   camera.near = 0.1f;
   camera.far = 1000.f;
 
@@ -43,8 +39,10 @@ void cameraUpdate(Camera* self) {
 
   vec3s lookPos = glms_vec3_add(self->position, self->orientation);
 
-  self->proj = glms_perspective(glm_rad(self->fov), aspectRatio, self->near, self->far);
+  self->proj = glms_perspective(self->fov, aspectRatio, self->near, self->far);
   self->view = glms_lookat(self->position, lookPos, self->up);
+  self->pv = glms_mat4_mul(self->proj, self->view);
+  self->pvInv = glms_mat4_inv(self->pv);
 }
 
 void cameraMoveForward(Camera* self, float dt) {
@@ -93,5 +91,17 @@ void cameraRotate(Camera* self, vec2s mousePos) {
 
   self->yaw += rad.x;
   self->pitch = glm_clamp(self->pitch - rad.y, -PI_2 + 0.1f, PI_2 - 0.1f);
+}
+
+void cameraSetUniforms(const Camera* self, Shader* shader) {
+  shaderSetUniform1f   (shader, "u_camNear"   , self->near);
+  shaderSetUniform1f   (shader, "u_camFar"    , self->far);
+  shaderSetUniform1f   (shader, "u_camFov"    , self->fov);
+  shaderSetUniform3f   (shader, "u_camPos"    , self->position.raw);
+  shaderSetUniform3f   (shader, "u_camUp"     , self->up.raw);
+  shaderSetUniformMat4f(shader, "u_camProj"   , self->proj.raw);
+  shaderSetUniformMat4f(shader, "u_camView"   , self->view.raw);
+  shaderSetUniformMat4f(shader, "u_camPV"     , self->pv.raw);
+  shaderSetUniformMat4f(shader, "u_camInvPV"  , self->pvInv.raw);
 }
 

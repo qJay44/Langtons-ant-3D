@@ -6,17 +6,6 @@
 #include "fast_obj.h"
 #include "cglm/struct/mat4.h"
 
-static void setCameraUniforms(const Camera* cam, Shader* shader) {
-  shaderSetUniform1f   (shader, "u_camNear"   , cam->near);
-  shaderSetUniform1f   (shader, "u_camFar"    , cam->far);
-  shaderSetUniform1f   (shader, "u_camFov"    , cam->fov);
-  shaderSetUniform3f   (shader, "u_camPos"    , cam->position.raw);
-  shaderSetUniform3f   (shader, "u_camUp"     , cam->up.raw);
-  shaderSetUniformMat4f(shader, "u_camProj"   , cam->proj.raw);
-  shaderSetUniformMat4f(shader, "u_camView"   , cam->view.raw);
-  shaderSetUniformMat4f(shader, "u_camPV"     , glms_mat4_mul(cam->proj, cam->view).raw);
-}
-
 void meshLoadObjPN(const char* filepath, MeshData* outData) {
   fastObjMesh* obj = fast_obj_read(filepath);
   if (!obj) {
@@ -125,7 +114,7 @@ void meshDraw(Mesh* self, const Camera* cam, Shader* shader) {
   mat4s* mats[3] = {&self->mats.trans, &self->mats.rot, &self->mats.scale};
   mat4s model = glms_mat4_mulN(mats, 3);
 
-  setCameraUniforms(cam, shader);
+  cameraSetUniforms(cam, shader);
   shaderSetUniformMat4f(shader, "u_model", model.raw);
 
   shaderUse(shader);
@@ -138,7 +127,7 @@ void meshDrawScreen(const Camera* cam, Shader* shader) {
   const VAO* vao = vaoEmpty();
   vaoBind(vao);
 
-  setCameraUniforms(cam, shader);
+  cameraSetUniforms(cam, shader);
   shaderUse(shader);
   glDrawArrays(GL_TRIANGLES, 0, 6);
 

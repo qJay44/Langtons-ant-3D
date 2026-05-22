@@ -20,7 +20,7 @@ const vec3 colors[5] = vec3[] (
 
 // Gamma correction?
 void main() {
-  vec3 baseColor = colors[v_state - 1]; // 0 is "invisible block"
+  vec3 baseColor = colors[v_state - 1]; // 0 state is "invisible block" (v_state will never be 0)
 
   vec3 normal = normalize(v_normal);
   vec3 viewDir = normalize(u_camPos - v_worldPos);
