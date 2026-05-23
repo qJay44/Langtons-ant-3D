@@ -16,6 +16,12 @@ void GLBuffer_allocate(const GLBuffer* self, const void* data, GLsizeiptr dataSi
   GLBuffer_unbind(self);
 }
 
+void GLBuffer_update(const GLBuffer* self, const void* data, GLsizeiptr dataSize, GLintptr offset) {
+  GLBuffer_bind(self);
+  glBufferSubData(self->target, offset, dataSize, data);
+  GLBuffer_unbind(self);
+}
+
 void GLBuffer_unbind(const GLBuffer* self) {
   glBindBuffer(self->target, 0);
 }

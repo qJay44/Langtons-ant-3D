@@ -1,21 +1,24 @@
 #ifndef GRID_H
 #define GRID_H
 
+#include "../engine/mesh/vertex.h"
 #include "../engine/mesh/meshInstanced.h"
 
 typedef struct {
-  int x, y, z;
-} VoxelKey;
+  VertexPN* vertices;
+  size_t verticesSize;
+  GLuint* indices;
+  size_t indicesSize;
+} GridMeshData;
 
-typedef struct {
-  VoxelKey key;
-  int value;
-} VoxelMap;
+void gridInitMesh(const GridMeshData* data);
+void gridInitMeshFromOBJ(const char* filepath);
 
 int gridGetVoxel(ivec3s coord);
 void gridSetVoxel(ivec3s coord, int state);
-void gridUpdateMeshBuffers(MeshInstanced* mesh);
+void gridUpdateMesh();
 
-extern VoxelMap* grid;
+extern MeshInstanced gridMesh;
 
 #endif
+

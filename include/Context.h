@@ -17,9 +17,19 @@ static inline ivec2s getWinSize() {
   return res;
 }
 
+static inline vec2s getWinSizef() {
+  assert(ctx.window);
+  ivec2s ws = getWinSize();
+  vec2s res = {0};
+  res.x = (float)ws.x;
+  res.y = (float)ws.y;
+
+  return res;
+}
+
 static inline vec2s getWinCenter() {
   ivec2s ws = getWinSize();
-  vec2s winSize = glms_vec2_zero();
+  vec2s winSize = {0};
   winSize.x = (float)ws.x;
   winSize.y = (float)ws.y;
 

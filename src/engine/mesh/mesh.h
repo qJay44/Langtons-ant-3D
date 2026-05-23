@@ -6,32 +6,46 @@
 #include "Transformable.h"
 #include "../shader.h"
 #include "../camera.h"
+#include "vertex.h"
 
 typedef struct {
-  size_t vertices;
-  size_t indices;
+  size_t count;
 
   VAO vao;
   GLBuffer vbo;
   GLBuffer ebo;
 
   Transformable mats;
-} Mesh;
+} MeshElements;
+
+typedef struct {
+  size_t count;
+
+  VAO vao;
+  GLBuffer vbo;
+
+  Transformable mats;
+} MeshArrays;
 
 typedef struct {
   float* vertices;
   GLuint* indices;
-  size_t vertSize;
-  size_t indSize;
+  size_t verticesSize;
+  size_t indicesSize;
+  VertexLayout layout;
 } MeshData;
 
+// [outData.vertices] and [outData.indices] have to be freed
 void meshLoadObjPN(const char* filepath, MeshData* outData);
 
-[[nodiscard]] Mesh meshCreatePN(const MeshData* data);
+[[nodiscard]] MeshElements meshCreateElements(const MeshData* data);
+[[nodiscard]] MeshArrays meshCreateArrays(const MeshData* data, GLenum usage);
 
-void meshDraw(Mesh* self, const Camera* cam, Shader* shader);
+void meshUpdateBufferVBO(MeshArrays* self, const MeshData* data, GLintptr offset);
+void meshDrawElements(MeshElements* self, const Camera* cam, Shader* shader);
+void meshDrawArrays(MeshArrays* self, const Camera* cam, Shader* shader);
 void meshDrawScreen(const Camera* cam, Shader* shader);
-void meshClear(Mesh* self);
+void meshClear(MeshElements* self);
 
 #endif
 

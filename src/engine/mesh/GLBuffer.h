@@ -17,6 +17,7 @@ typedef struct {
 void GLBuffer_gen(GLBuffer* self, GLenum target, GLsizei size);
 void GLBuffer_bind(const GLBuffer* self);
 void GLBuffer_allocate(const GLBuffer* self, const void* data, GLsizeiptr dataSize, GLenum usage);
+void GLBuffer_update(const GLBuffer* self, const void* data, GLsizeiptr dataSize, GLintptr offset);
 void GLBuffer_unbind(const GLBuffer* self);
 void GLBuffer_clear(GLBuffer* self);
 

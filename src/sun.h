@@ -33,7 +33,7 @@ static inline Sun sunCreateDefault() {
   return sun;
 }
 
-static inline void sunSetUniforms(Sun* self, Shader* shader) {
+static inline void sunSetUniforms(const Sun* self, Shader* shader) {
   shaderSetUniform3f(shader, "u_lightDir", self->lightDir.raw);
   shaderSetUniform3f(shader, "u_lightColor", self->color.raw);
   shaderSetUniform1f(shader, "u_sunFocus", self->focus);

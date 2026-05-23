@@ -2,33 +2,31 @@
 #include <cglm/struct/mat4.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 
 #ifdef _WIN32
-  #include <direct.h>
-  #define CHDIR(p) _chdir(p);
+#include <direct.h>
+#define CHDIR(p) _chdir(p);
 #else
-  #include <unistd.h>
-  #define CHDIR(p) chdir(p);
+#include <unistd.h>
+#define CHDIR(p) chdir(p);
 #endif
 
-
-#include "cglm/types-struct.h"
-
 #include "inputs.h"
-#include "engine/mesh/mesh.h"
 #include "sun.h"
-#include "engine/camera.h"
-#include "engine/mesh/meshInstanced.h"
+
 #include "ant/ant.h"
 #include "ant/grid.h"
+#include "cglm/types-struct.h"
+#include "engine/camera.h"
+#include "engine/mesh/meshInstanced.h"
+#include "engine/text/font.h"
+#include "engine/text/text.h"
 
 struct Context ctx;
 
 int main() {
   // Change cwd to where "src" directory located (since launching the executable always from the directory where its located)
   CHDIR("../../..");
-  srand(time(NULL));
 
   const int initWidth = 1600;
   const int initHeight = 900;
@@ -42,63 +40,58 @@ int main() {
   // Window init
   GLFWwindow* window = glfwCreateWindow(initWidth, initHeight, "MyProgram", NULL, NULL);
   if (!window) {
-    printf("Failed to create GFLW window\n");
+    fprintf(stderr, "❌Failed to create GFLW window\n");
     glfwTerminate();
     return EXIT_FAILURE;
   }
+
   glfwMakeContextCurrent(window);
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-  glfwSetCursorPos(window, initWidth * 0.5f, initHeight * 0.5f);
   glfwSetCursorPosCallback(window, cursorPosCallback);
   glfwSetKeyCallback(window, keyCallback);
-
-  ctx.window = window;
-  ctx.wireframeMode = false;
 
   // GLAD init
   int version = gladLoadGL((GLADloadfunc)glfwGetProcAddress);
   if (!version) {
-    printf("Failed to initialize GLAD\n");
+    fprintf(stderr, "❌Failed to initialize GLAD\n");
     return EXIT_FAILURE;
   }
 
   glViewport(0, 0, initWidth, initHeight);
+
+  ctx.window = window;
+  ctx.wireframeMode = false;
+
+  // Keep it simple, because no windows resize callbacks
+  const vec2s winCenter = getWinCenter();
+  glfwSetCursorPos(window, winCenter.x, winCenter.y);
 
   Sun sun = sunCreateDefault();
 
   shadersFolder = "res/shaders";
   Shader sunShader = shaderCreate("sun.vert", "sun.frag", NULL);
   Shader voxelShader = shaderCreate("voxel.vert", "voxel.frag", NULL);
+  Shader textShader = shaderCreate("text.vert", "text.frag", NULL);
   sunSetUniforms(&sun, &voxelShader);
 
   Camera camera = cameraCreateDefault();
   activeCamera = &camera;
 
   Ant ant = antCreateDefault();
-  MeshInstanced antVoxels;
-  {
-    MeshData data;
-    meshLoadObjPN("res/obj/BeveledCube.obj", &data);
+  gridInitMeshFromOBJ("res/obj/BeveledCube.obj");
 
-    antVoxels = meshInstancedCreatePN(&data);
-
-    free(data.vertices);
-    free(data.indices);
-  }
+  Font font = fontCreate("res/fonts/Minecraft.otf", 22, 0);
+  Text textFps = textCreate(&font, 1.f, "60");
+  textSetPosRelative(&textFps, (vec2s){{0.975f, 0.97f}});
 
   double titleTimer = glfwGetTime();
   double prevTime = titleTimer;
-  double currTime = prevTime;
-  double dt;
-
-  glEnable(GL_DEPTH_TEST);
-  glEnable(GL_CULL_FACE);
+  double currTime = prevTime + 1.f;
+  float dt = currTime;
+  float fpsTimer = 0.f;
 
   glCullFace(GL_BACK);
   glFrontFace(GL_CCW);
-
-  // Keep it simple, because no windows resize callbacks
-  const vec2s winCenter = getWinCenter();
 
   // Render loop
   while (!glfwWindowShouldClose(window)) {
@@ -107,14 +100,25 @@ int main() {
     glfwSetCursorPos(window, winCenter.x, winCenter.y);
 
     currTime = glfwGetTime();
-    dt = currTime - prevTime;
+    dt = (float)(currTime - prevTime);
     prevTime = currTime;
+    fpsTimer += dt;
 
     inputsMoveCamera(activeCamera, dt);
     cameraUpdate(activeCamera);
 
     antUpdate(&ant);
-    gridUpdateMeshBuffers(&antVoxels);
+    gridUpdateMesh();
+
+
+    if (fpsTimer > 0.1f){
+      u32 fps = (u32)(1.f / fmaxf(dt, 0.0001f));
+      char str[16] = {0};
+      snprintf(str, sizeof(str), "%u", fps);
+
+      textSetText(&textFps, str);
+      fpsTimer = 0.f;
+    }
 
     // ----- Draw ------------------------------------------------ //
 
@@ -128,7 +132,12 @@ int main() {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 
-    meshInstancedDraw(&antVoxels, activeCamera, &voxelShader);
+    meshInstancedDraw(&gridMesh, activeCamera, &voxelShader);
+
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+
+    textDraw(&textFps, activeCamera, &textShader);
 
     // ----------------------------------------------------------- //
 

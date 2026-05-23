@@ -9,6 +9,7 @@ flat in int v_state;
 
 uniform vec3 u_lightDir;
 uniform vec3 u_camPos;
+layout(binding = 0) uniform sampler2D u_texAtlas;
 
 const vec3 colors[5] = vec3[] (
   vec3(1.f,   0.15f, 0.15f), // State 1: Toy Red

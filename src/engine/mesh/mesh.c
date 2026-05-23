@@ -5,6 +5,16 @@
 #include "GLBuffer.h"
 #include "fast_obj.h"
 #include "cglm/struct/mat4.h"
+#include "vertex.h"
+
+static void linkAttributes(const MeshData* data, size_t elementSize) {
+  size_t offset = 0;
+  for (size_t i = 0; i < data->layout.count; i++) {
+    VertexAttribute attr = data->layout.attribs[i];
+    vaoLinkAttrib(i, attr.size, attr.type, data->layout.stride, (void*)(offset));
+    offset += attr.size * elementSize;
+  }
+}
 
 void meshLoadObjPN(const char* filepath, MeshData* outData) {
   fastObjMesh* obj = fast_obj_read(filepath);
@@ -19,11 +29,11 @@ void meshLoadObjPN(const char* filepath, MeshData* outData) {
 
   u32 indicesCount = totalTriangles * 3;
 
-  outData->vertSize = indicesCount * 6 * sizeof(float);
-  outData->indSize  = indicesCount * sizeof(GLuint);
+  outData->verticesSize = indicesCount * sizeof(VertexPN);
+  outData->indicesSize  = indicesCount * sizeof(GLuint);
 
-  outData->vertices = malloc(outData->vertSize);
-  outData->indices  = malloc(outData->indSize);
+  outData->vertices = malloc(outData->verticesSize);
+  outData->indices  = malloc(outData->indicesSize);
 
   if (!outData->vertices || !outData->indices) {
     fprintf(stderr, "❌ Memory allocation failed while loading OBJ: [%s]\n", filepath);
@@ -73,33 +83,27 @@ void meshLoadObjPN(const char* filepath, MeshData* outData) {
   fast_obj_destroy(obj);
 }
 
-Mesh meshCreatePN(const MeshData* data) {
-  Mesh mesh;
-  mesh.vertices = data->vertSize / sizeof(data->vertices[0]);
-  mesh.indices = data->indSize / sizeof(data->indices[0]);
+MeshElements meshCreateElements(const MeshData* data) {
+  MeshElements mesh;
+  mesh.count = data->indicesSize / sizeof(data->indices[0]);
   mesh.mats.trans = glms_mat4_identity();
   mesh.mats.rot   = glms_mat4_identity();
   mesh.mats.scale = glms_mat4_identity();
 
-  bool useEBO = mesh.indices > 0;
-
   vaoGen(&mesh.vao, 1);
   GLBuffer_gen(&mesh.vbo, GL_ARRAY_BUFFER, 1);
-  if (useEBO) GLBuffer_gen(&mesh.ebo, GL_ELEMENT_ARRAY_BUFFER, 1);
+  GLBuffer_gen(&mesh.ebo, GL_ELEMENT_ARRAY_BUFFER, 1);
 
   vaoBind(&mesh.vao);
 
-  GLBuffer_allocate(&mesh.vbo, data->vertices, data->vertSize, GL_STATIC_DRAW);
-  if (useEBO) GLBuffer_allocate(&mesh.ebo, data->indices, data->indSize, GL_STATIC_DRAW);
+  GLBuffer_allocate(&mesh.vbo, data->vertices, data->verticesSize, GL_STATIC_DRAW);
+  GLBuffer_allocate(&mesh.ebo, data->indices, data->indicesSize, GL_STATIC_DRAW);
 
   vaoBind(&mesh.vao);
   GLBuffer_bind(&mesh.vbo);
-  if (useEBO) GLBuffer_bind(&mesh.ebo);
+  GLBuffer_bind(&mesh.ebo);
 
-  size_t typeSize = sizeof(float);
-  size_t stride = typeSize * 3 * 2;
-  vaoLinkAttrib(0, 3, GL_FLOAT, stride, (void*)(0 * typeSize));
-  vaoLinkAttrib(1, 3, GL_FLOAT, stride, (void*)(3 * typeSize));
+  linkAttributes(data, sizeof(float));
 
   vaoUnbind();
   GLBuffer_unbind(&mesh.vbo);
@@ -108,7 +112,37 @@ Mesh meshCreatePN(const MeshData* data) {
   return mesh;
 }
 
-void meshDraw(Mesh* self, const Camera* cam, Shader* shader) {
+MeshArrays meshCreateArrays(const MeshData* data, GLenum usage) {
+  MeshArrays mesh;
+  mesh.count = data->verticesSize / sizeof(data->vertices[0]);
+  mesh.mats.trans = glms_mat4_identity();
+  mesh.mats.rot   = glms_mat4_identity();
+  mesh.mats.scale = glms_mat4_identity();
+
+  vaoGen(&mesh.vao, 1);
+  GLBuffer_gen(&mesh.vbo, GL_ARRAY_BUFFER, 1);
+
+  vaoBind(&mesh.vao);
+
+  GLBuffer_allocate(&mesh.vbo, data->vertices, data->verticesSize, usage);
+
+  vaoBind(&mesh.vao);
+  GLBuffer_bind(&mesh.vbo);
+
+  linkAttributes(data, sizeof(float));
+
+  vaoUnbind();
+  GLBuffer_unbind(&mesh.vbo);
+
+  return mesh;
+}
+
+void meshUpdateBufferVBO(MeshArrays* self, const MeshData* data, GLintptr offset) {
+  GLBuffer_update(&self->vbo, data->vertices, data->verticesSize, offset);
+  self->count = data->verticesSize / data->layout.stride;
+}
+
+void meshDrawElements(MeshElements* self, const Camera* cam, Shader* shader) {
   vaoBind(&self->vao);
 
   mat4s* mats[3] = {&self->mats.trans, &self->mats.rot, &self->mats.scale};
@@ -118,7 +152,22 @@ void meshDraw(Mesh* self, const Camera* cam, Shader* shader) {
   shaderSetUniformMat4f(shader, "u_model", model.raw);
 
   shaderUse(shader);
-  glDrawElements(GL_TRIANGLES, self->indices, GL_UNSIGNED_INT, 0);
+  glDrawElements(GL_TRIANGLES, self->count, GL_UNSIGNED_INT, 0);
+
+  vaoUnbind();
+}
+
+void meshDrawArrays(MeshArrays* self, const Camera* cam, Shader* shader) {
+  vaoBind(&self->vao);
+
+  mat4s* mats[3] = {&self->mats.trans, &self->mats.rot, &self->mats.scale};
+  mat4s model = glms_mat4_mulN(mats, 3);
+
+  cameraSetUniforms(cam, shader);
+  shaderSetUniformMat4f(shader, "u_model", model.raw);
+
+  shaderUse(shader);
+  glDrawArrays(GL_TRIANGLES, 0, self->count);
 
   vaoUnbind();
 }
@@ -134,7 +183,7 @@ void meshDrawScreen(const Camera* cam, Shader* shader) {
   vaoUnbind();
 }
 
-void meshClear(Mesh* self) {
+void meshClear(MeshElements* self) {
   vaoClear(&self->vao);
   GLBuffer_clear(&self->vbo);
   GLBuffer_clear(&self->ebo);

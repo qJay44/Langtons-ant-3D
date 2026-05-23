@@ -10,6 +10,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/Run)
 project(MyProject VERSION 1.0)
 
 find_package(glfw3 REQUIRED)
+find_package(Freetype REQUIRED)
 
 # ===== GLAD ====================================================== #
 
@@ -32,5 +33,5 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   ${FAST_OBJ_PATH}
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw GLAD m)
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw GLAD m Freetype::Freetype)
 
