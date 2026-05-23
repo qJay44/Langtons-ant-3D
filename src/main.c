@@ -22,7 +22,7 @@
 #include "engine/text/font.h"
 #include "engine/text/text.h"
 
-struct Context ctx;
+struct Context ctx = {0};
 
 int main() {
   // Change cwd to where "src" directory located (since launching the executable always from the directory where its located)
@@ -61,6 +61,7 @@ int main() {
 
   ctx.window = window;
   ctx.wireframeMode = false;
+  ctx.movesPerFrame = 1;
 
   // Keep it simple, because no windows resize callbacks
   const vec2s winCenter = getWinCenter();
@@ -83,6 +84,12 @@ int main() {
   Font font = fontCreate("res/fonts/Minecraft.otf", 22, 0);
   Text textFps = textCreate(&font, 1.f, "60");
   textSetPosRelative(&textFps, (vec2s){{0.975f, 0.97f}});
+
+  Text textSteps = textCreate(&font, 1.f, "0");
+  textSetPosRelative(&textSteps, (vec2s){{0.005f, 0.97f}});
+
+  Text textStepsPerFrame = textCreate(&font, 1.f, "0");
+  textSetPosUnderOther(&textStepsPerFrame, &textSteps, (vec2s){{0.f, -20.f}});
 
   double titleTimer = glfwGetTime();
   double prevTime = titleTimer;
@@ -107,18 +114,20 @@ int main() {
     inputsMoveCamera(activeCamera, dt);
     cameraUpdate(activeCamera);
 
-    antUpdate(&ant);
+    for (int i = 0; i < ctx.movesPerFrame; i++) {
+      antUpdate(&ant);
+    }
+
     gridUpdateMesh();
 
-
     if (fpsTimer > 0.1f){
-      u32 fps = (u32)(1.f / fmaxf(dt, 0.0001f));
-      char str[16] = {0};
-      snprintf(str, sizeof(str), "%u", fps);
-
-      textSetText(&textFps, str);
+      int fps = (int)(1.f / fmaxf(dt, 0.0001f));
+      textSetTexti(&textFps, fps);
       fpsTimer = 0.f;
     }
+
+    textSetTexti(&textSteps, ant.steps);
+    textSetTextFmt(&textStepsPerFrame, "x%d", ctx.movesPerFrame);
 
     // ----- Draw ------------------------------------------------ //
 
@@ -138,6 +147,8 @@ int main() {
     glDisable(GL_CULL_FACE);
 
     textDraw(&textFps, activeCamera, &textShader);
+    textDraw(&textSteps, activeCamera, &textShader);
+    textDraw(&textStepsPerFrame, activeCamera, &textShader);
 
     // ----------------------------------------------------------- //
 

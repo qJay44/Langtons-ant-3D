@@ -18,7 +18,8 @@ Ant antCreateDefault() {
   Ant ant = {
     {{ 0,  0,  0}},
     {{ 0, -1,  0}},
-    {{ 0,  0, -1}}
+    {{ 0,  0, -1}},
+    0
   };
 
   return ant;
@@ -26,6 +27,7 @@ Ant antCreateDefault() {
 
 static void antMove(Ant* self) {
   self->pos = ivec3s_add(self->pos, self->dir);
+  self->steps++;
 }
 
 static void antTurn(Ant* self, AntTurn turn) {

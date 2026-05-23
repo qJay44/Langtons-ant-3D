@@ -7,6 +7,7 @@ typedef struct Ant {
   ivec3s pos;    // position
   ivec3s dir; // orientation
   ivec3s up;
+  int steps;
 } Ant;
 
 [[nodiscard]] Ant antCreateDefault();

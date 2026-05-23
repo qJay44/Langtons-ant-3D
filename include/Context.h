@@ -8,6 +8,7 @@
 extern struct Context {
   GLFWwindow* window;
   bool wireframeMode;
+  int movesPerFrame;
 } ctx;
 
 static inline ivec2s getWinSize() {

@@ -16,8 +16,11 @@ typedef struct {
 Text textCreate(const Font* font, float scale, const char* text);
 
 void textSetText(Text* self, const char* text);
+void textSetTextFmt(Text* self, const char* format, ...) __attribute__((format(printf, 2, 3)));
+void textSetTexti(Text* self, int num);
 void textSetPos(Text* self, vec2s pos);
 void textSetPosRelative(Text* self, vec2s pos);
+void textSetPosUnderOther(Text* self, const Text* other, vec2s offset);
 void textDraw(Text* self, const Camera* cam, Shader* shader);
 
 #endif

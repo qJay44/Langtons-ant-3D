@@ -2,6 +2,8 @@
 #include "text.h"
 
 #include <math.h>
+#include <stdarg.h>
+#include <stddef.h>
 #include <stdio.h>
 
 #include "../mesh/vertex.h"
@@ -71,6 +73,31 @@ void textSetText(Text* self, const char* text) {
   meshUpdateBufferVBO(&self->mesh, &meshData, 0);
 }
 
+void textSetTextFmt(Text* self, const char* format, ...) {
+  char buf[TEXT_MAX_LEN + 1];
+
+  va_list args;
+  va_start(args, format);
+
+  int result = vsnprintf(buf, sizeof(buf), format, args);
+
+  va_end(args);
+
+  if (result < 0) {
+    fprintf(stderr, "[textSetTextFmt] ❌Error formatting string\n");
+    return;
+  }
+
+  if ((size_t)result >= sizeof(buf))
+    fprintf(stderr, "[textSetTextFmt] ⚠️ Text is truncated (required [%d] bytes out of [%d])\n", result, TEXT_MAX_LEN);
+
+  textSetText(self, buf);
+}
+
+void textSetTexti(Text* self, int num) {
+  textSetTextFmt(self, "%d", num);
+}
+
 void textSetPos(Text* self, vec2s pos) {
   vec3s translate = {0};
   translate.x = pos.x;
@@ -85,6 +112,15 @@ void textSetPosRelative(Text* self, vec2s pos) {
   pos.y *= winSize.y;
 
   textSetPos(self, pos);
+}
+
+void textSetPosUnderOther(Text* self, const Text* other, vec2s offset) {
+  vec2s move = {0};
+  move.x = other->mesh.mats.trans.m30;
+  move.y = other->mesh.mats.trans.m31 - other->rectSize.y;
+  move = glms_vec2_add(move, offset);
+
+  textSetPos(self, move);
 }
 
 void textDraw(Text* self, const Camera* cam, Shader* shader) {
