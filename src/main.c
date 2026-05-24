@@ -82,13 +82,13 @@ int main() {
   gridInitMeshFromOBJ("res/obj/BeveledCube.obj");
 
   Font font = fontCreate("res/fonts/Minecraft.otf", 22, 0);
-  Text textFps = textCreate(&font, 1.f, "60");
+  Text textFps = textCreate(&font, "60");
   textSetPosRelative(&textFps, (vec2s){{0.975f, 0.97f}});
 
-  Text textSteps = textCreate(&font, 1.f, "0");
+  Text textSteps = textCreate(&font, "0");
   textSetPosRelative(&textSteps, (vec2s){{0.005f, 0.97f}});
 
-  Text textStepsPerFrame = textCreate(&font, 1.f, "0");
+  Text textStepsPerFrame = textCreate(&font, "0");
   textSetPosUnderOther(&textStepsPerFrame, &textSteps, (vec2s){{0.f, -20.f}});
 
   double titleTimer = glfwGetTime();

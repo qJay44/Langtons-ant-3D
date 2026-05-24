@@ -7,15 +7,13 @@
 #include <stdio.h>
 
 #include "../mesh/vertex.h"
-#include "cglm/struct/mat4.h"
 #include "cglm/struct/cam.h"
 #include "cglm/affine.h"
 #include "cglm/struct/vec2.h"
 
-Text textCreate(const Font* font, float scale, const char* text) {
+Text textCreate(const Font* font, const char* text) {
   Text self = {0};
   self.font = font;
-  self.scale = scale;
 
   MeshData meshData = {0};
   meshData.verticesSize = sizeof(VertexPT) * TEXT_MAX_LEN * 6;
@@ -47,10 +45,10 @@ void textSetText(Text* self, const char* text) {
     FontGlyph g = self->font->glyphs[(int)text[i]];
     size_t triIdx = i * 6;
 
-    float x = cursorX + g.bearingX * self->scale;
-    float y = (g.height - g.bearingY) * self->scale;
-    float w = g.width * self->scale;
-    float h = g.height * self->scale;
+    float x = cursorX + g.bearingX;
+    float y = g.height - g.bearingY;
+    float w = g.width;
+    float h = g.height;
 
     vertices[triIdx + 0] = (VertexPT){{{x    , y + h, 0.f}}, {{g.uv0.x, g.uv0.y}}};
     vertices[triIdx + 1] = (VertexPT){{{x    , y    , 0.f}}, {{g.uv0.x, g.uv1.y}}};
@@ -60,7 +58,7 @@ void textSetText(Text* self, const char* text) {
     vertices[triIdx + 4] = (VertexPT){{{x + w, y    , 0.f}}, {{g.uv1.x, g.uv1.y}}};
     vertices[triIdx + 5] = (VertexPT){{{x + w, y + h, 0.f}}, {{g.uv1.x, g.uv0.y}}};
 
-    cursorX += g.advance * self->scale;
+    cursorX += g.advance;
     self->rectSize.y = fmaxf(self->rectSize.y, h);
     verticesCount += 6;
   }

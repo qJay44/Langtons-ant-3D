@@ -8,12 +8,11 @@
 
 typedef struct {
   const Font* font;
-  float scale;
   vec2s rectSize;
   MeshArrays mesh;
 } Text;
 
-Text textCreate(const Font* font, float scale, const char* text);
+Text textCreate(const Font* font, const char* text);
 
 void textSetText(Text* self, const char* text);
 void textSetTextFmt(Text* self, const char* format, ...) __attribute__((format(printf, 2, 3)));
