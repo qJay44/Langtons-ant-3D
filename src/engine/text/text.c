@@ -46,7 +46,7 @@ void textSetText(Text* self, const char* text) {
     size_t triIdx = i * 6;
 
     float x = cursorX + g.bearingX;
-    float y = g.height - g.bearingY;
+    float y = -(float)g.height + g.bearingY;
     float w = g.width;
     float h = g.height;
 

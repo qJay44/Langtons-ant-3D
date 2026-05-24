@@ -23,7 +23,7 @@ typedef struct {
 
 Font fontCreate(const char* fontPath, u32 height, u32 width);
 
-void fontLoad(Font* font);
+void fontLoad(Font* self);
 
 #endif
 

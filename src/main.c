@@ -79,6 +79,7 @@ int main() {
   activeCamera = &camera;
 
   Ant ant = antCreateDefault();
+  // gridInitMeshFromOBJ("res/obj/Cube.obj");
   gridInitMeshFromOBJ("res/obj/BeveledCube.obj");
 
   Font font = fontCreate("res/fonts/Minecraft.otf", 22, 0);
@@ -88,8 +89,11 @@ int main() {
   Text textSteps = textCreate(&font, "0");
   textSetPosRelative(&textSteps, (vec2s){{0.005f, 0.97f}});
 
+  Text textInstances = textCreate(&font, "0");
+  textSetPosUnderOther(&textInstances, &textSteps, (vec2s){{0.f, -20.f}});
+
   Text textStepsPerFrame = textCreate(&font, "0");
-  textSetPosUnderOther(&textStepsPerFrame, &textSteps, (vec2s){{0.f, -20.f}});
+  textSetPosUnderOther(&textStepsPerFrame, &textInstances, (vec2s){{0.f, -20.f}});
 
   double titleTimer = glfwGetTime();
   double prevTime = titleTimer;
@@ -126,8 +130,9 @@ int main() {
       fpsTimer = 0.f;
     }
 
-    textSetTexti(&textSteps, ant.steps);
-    textSetTextFmt(&textStepsPerFrame, "x%d", ctx.movesPerFrame);
+    textSetTextFmt(&textSteps, "Steps: %d", ant.steps);
+    textSetTextFmt(&textInstances, "Voxels: %d", gridMesh.instanceCount);
+    textSetTextFmt(&textStepsPerFrame, "Speed: x%d", ctx.movesPerFrame);
 
     // ----- Draw ------------------------------------------------ //
 
@@ -149,6 +154,7 @@ int main() {
     textDraw(&textFps, activeCamera, &textShader);
     textDraw(&textSteps, activeCamera, &textShader);
     textDraw(&textStepsPerFrame, activeCamera, &textShader);
+    textDraw(&textInstances, activeCamera, &textShader);
 
     // ----------------------------------------------------------- //
 

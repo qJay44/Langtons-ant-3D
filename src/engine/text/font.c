@@ -23,32 +23,32 @@ Font fontCreate(const char* fontPath, u32 height, u32 width) {
   return font;
 }
 
-void fontLoad(Font* font) {
+void fontLoad(Font* self) {
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
   TextureDescriptor texDesc = textureDescDefault;
   texDesc.internalFormat = GL_RED;
   texDesc.format = GL_RED;
 
-  int atlasSize = 512;
+  u32 atlasSize = 512;
   float atlasSizeInv = 1.f / (float)atlasSize;
 
-  font->atlas = texture2D_createEmpty(&texDesc, atlasSize, atlasSize);
+  self->atlas = texture2D_createEmpty(&texDesc, atlasSize, atlasSize);
   int atlasX = 0;
   int atlasY = 0;
   u32 maxRowHeight = 0;
-  texture2D_bind(font->atlas, 0);
+  texture2D_bind(self->atlas, 0);
 
   for (u8 c = 0; c < 128; c++) {
-    if (FT_Load_Char(font->face, c, FT_LOAD_RENDER)) {
-      fprintf(stderr, "⚠️[fontLoad] Failed to load glyph [%u]", c);
+    if (FT_Load_Char(self->face, c, FT_LOAD_RENDER)) {
+      fprintf(stderr, "[fontLoad] ⚠️Failed to load glyph [%u]", c);
       continue;
     }
 
-    FT_Bitmap bmp = font->face->glyph->bitmap;
+    FT_Bitmap bmp = self->face->glyph->bitmap;
     FontGlyph glyph = {0};
 
-    if (atlasX + bmp.width >= 512) {
+    if (atlasX + bmp.width >= atlasSize) {
       atlasX = 0;
       atlasY += maxRowHeight + 1;
       maxRowHeight = 0;
@@ -64,11 +64,11 @@ void fontLoad(Font* font) {
 
     glyph.width = bmp.width;
     glyph.height = bmp.rows;
-    glyph.bearingX = font->face->glyph->bitmap_left;
-    glyph.bearingY = font->face->glyph->bitmap_top;
-    glyph.advance = font->face->glyph->advance.x >> 6;
+    glyph.bearingX = self->face->glyph->bitmap_left;
+    glyph.bearingY = self->face->glyph->bitmap_top;
+    glyph.advance = self->face->glyph->advance.x >> 6;
 
-    font->glyphs[c] = glyph;
+    self->glyphs[c] = glyph;
 
     atlasX += bmp.width + 1;
     if (bmp.rows > maxRowHeight)

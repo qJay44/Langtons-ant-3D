@@ -27,21 +27,26 @@ static inline void keyCallback(GLFWwindow* window, int key, int scancode, int ac
 
   switch (key) {
     case GLFW_KEY_1:
-      if (action == GLFW_PRESS)
+      if (action == GLFW_PRESS) {
         ctx.wireframeMode = !ctx.wireframeMode;
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE + !ctx.wireframeMode);
+      }
       break;
     case GLFW_KEY_2:
       if (action == GLFW_PRESS)
         ctx.movesPerFrame >>= 1;
       break;
     case GLFW_KEY_3:
-      if (action == GLFW_PRESS)
+      if (action == GLFW_PRESS) {
         ctx.movesPerFrame <<= 1;
+        if (ctx.movesPerFrame < 1)
+          ctx.movesPerFrame = 1;
+      }
       break;
   }
 
   ctx.movesPerFrame = ctx.movesPerFrame > 1023 ? 1024 : ctx.movesPerFrame;
-  ctx.movesPerFrame = ctx.movesPerFrame < 1 ? 1 : ctx.movesPerFrame;
+  ctx.movesPerFrame = ctx.movesPerFrame < 0 ? 0 : ctx.movesPerFrame;
 }
 
 static inline void cursorPosCallback(GLFWwindow* window, double xpos, double ypos) {

@@ -9,6 +9,8 @@
 #include "cglm/types-struct.h"
 #include "../engine/mesh/mesh.h"
 
+#define MAX_VOXELS 100000u
+
 typedef struct {
   int x, y, z;
 } VoxelKey;
@@ -26,12 +28,15 @@ typedef struct {
 static VoxelMap* grid = NULL;
 MeshInstanced gridMesh = {0};
 
+static VoxelInstanceAttributes* staticInstanceVertices = NULL;
+
 void gridInitMesh(const GridMeshData* data) {
-  if (gridMesh.indices != 0) {
+  if (staticInstanceVertices) {
     fprintf(stderr, "[❌gridInit] Grid mesh already initialized");
     exit(EXIT_FAILURE);
   }
 
+  staticInstanceVertices = malloc(MAX_VOXELS * sizeof(VoxelInstanceAttributes));
   gridMesh.indices = data->indicesSize / sizeof(data->indices[0]);
 
   vaoGen(&gridMesh.vao, 1);
@@ -98,28 +103,30 @@ void gridUpdateMesh() {
   assert(gridMesh.indices != 0);
 
   ptrdiff_t activeVoxels = hmlen(grid);
-
-  if (activeVoxels == 0) {
-    gridMesh.instanceCount = 0;
-    return;
-  }
-
-  VoxelInstanceAttributes* instanceVertices = malloc(activeVoxels * sizeof(VoxelInstanceAttributes));
   gridMesh.instanceCount = 0;
 
+  if (activeVoxels == 0)
+    return;
+
+  if (activeVoxels > MAX_VOXELS) {
+    fprintf(stderr, "❌Exceeding max voxels [%zu]\n", activeVoxels);
+    exit(EXIT_FAILURE);
+  }
+
   for (ptrdiff_t i = 0; i < activeVoxels; i++) {
-    if (grid[i].value != 0) {
-      instanceVertices[gridMesh.instanceCount].pos.x = (float)grid[i].key.x;
-      instanceVertices[gridMesh.instanceCount].pos.y = (float)grid[i].key.y;
-      instanceVertices[gridMesh.instanceCount].pos.z = (float)grid[i].key.z;
-      instanceVertices[gridMesh.instanceCount].state = grid[i].value;
-      gridMesh.instanceCount++;
-    }
+    staticInstanceVertices[gridMesh.instanceCount].pos.x = (float)grid[i].key.x;
+    staticInstanceVertices[gridMesh.instanceCount].pos.y = (float)grid[i].key.y;
+    staticInstanceVertices[gridMesh.instanceCount].pos.z = (float)grid[i].key.z;
+    staticInstanceVertices[gridMesh.instanceCount].state = grid[i].value;
+    gridMesh.instanceCount++;
   }
 
   if (gridMesh.instanceCount > 0)
-    GLBuffer_allocate(&gridMesh.vboInstanced, instanceVertices, gridMesh.instanceCount * sizeof(VoxelInstanceAttributes), GL_DYNAMIC_DRAW);
+    GLBuffer_allocate(&gridMesh.vboInstanced, staticInstanceVertices, gridMesh.instanceCount * sizeof(VoxelInstanceAttributes), GL_DYNAMIC_DRAW);
+}
 
-  free(instanceVertices);
+void gridClear() {
+  if (staticInstanceVertices) free(staticInstanceVertices);
+  staticInstanceVertices = NULL;
 }
 
