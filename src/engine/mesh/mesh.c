@@ -16,7 +16,7 @@ static void linkAttributes(const MeshData* data, size_t elementSize) {
   }
 }
 
-void meshLoadObjPN(const char* filepath, MeshData* outData) {
+void meshLoadObj(const char* filepath, MeshData* ioData, u32 attribFlags) {
   fastObjMesh* obj = fast_obj_read(filepath);
   if (!obj) {
     fprintf(stderr, "❌Failed to open OBJ: [%s]\n", filepath);
@@ -29,13 +29,13 @@ void meshLoadObjPN(const char* filepath, MeshData* outData) {
 
   u32 indicesCount = totalTriangles * 3;
 
-  outData->verticesSize = indicesCount * sizeof(VertexPN);
-  outData->indicesSize  = indicesCount * sizeof(GLuint);
+  ioData->verticesSize = indicesCount * ioData->layout.stride;
+  ioData->indicesSize  = indicesCount * sizeof(ioData->indices[0]);
 
-  outData->vertices = malloc(outData->verticesSize);
-  outData->indices  = malloc(outData->indicesSize);
+  ioData->vertices = malloc(ioData->verticesSize);
+  ioData->indices  = malloc(ioData->indicesSize);
 
-  if (!outData->vertices || !outData->indices) {
+  if (!ioData->vertices || !ioData->indices) {
     fprintf(stderr, "❌ Memory allocation failed while loading OBJ: [%s]\n", filepath);
     exit(EXIT_FAILURE);
   }
@@ -56,25 +56,32 @@ void meshLoadObjPN(const char* filepath, MeshData* outData) {
 
       for (u32 k = 0; k < 3; k++) {
         fastObjIndex idx = obj->indices[cornerIndices[k]];
+        u32 vTrackerOffset = 0;
 
-        outData->vertices[vertexTracker + 0] = obj->positions[idx.p * 3 + 0];
-        outData->vertices[vertexTracker + 1] = obj->positions[idx.p * 3 + 1];
-        outData->vertices[vertexTracker + 2] = obj->positions[idx.p * 3 + 2];
-
-        if (idx.n) {
-          outData->vertices[vertexTracker + 3] = obj->normals[idx.n * 3 + 0];
-          outData->vertices[vertexTracker + 4] = obj->normals[idx.n * 3 + 1];
-          outData->vertices[vertexTracker + 5] = obj->normals[idx.n * 3 + 2];
-        } else {
-          outData->vertices[vertexTracker + 3] = 0.f;
-          outData->vertices[vertexTracker + 4] = 0.f;
-          outData->vertices[vertexTracker + 5] = 0.f;
+        if ((attribFlags & MESH_LOAD_OBJ_ATTRIB_POSITION) && idx.p) {
+          ioData->vertices[vertexTracker + 0] = obj->positions[idx.p * 3 + 0];
+          ioData->vertices[vertexTracker + 1] = obj->positions[idx.p * 3 + 1];
+          ioData->vertices[vertexTracker + 2] = obj->positions[idx.p * 3 + 2];
+          vTrackerOffset += 3;
         }
 
-        outData->indices[indexTracker] = indexTracker;
+        if ((attribFlags & MESH_LOAD_OBJ_ATTRIB_TEXTURE) && idx.t) {
+          ioData->vertices[vertexTracker + vTrackerOffset + 0] = obj->texcoords[idx.t * 2 + 0];
+          ioData->vertices[vertexTracker + vTrackerOffset + 1] = obj->texcoords[idx.t * 2 + 1];
+          vTrackerOffset += 2;
+        }
+
+        if ((attribFlags & MESH_LOAD_OBJ_ATTRIB_NORMAL) && idx.n) {
+          ioData->vertices[vertexTracker + vTrackerOffset + 0] = obj->normals[idx.n * 3 + 0];
+          ioData->vertices[vertexTracker + vTrackerOffset + 1] = obj->normals[idx.n * 3 + 1];
+          ioData->vertices[vertexTracker + vTrackerOffset + 2] = obj->normals[idx.n * 3 + 2];
+          vTrackerOffset += 3;
+        }
+
+        ioData->indices[indexTracker] = indexTracker;
 
         indexTracker++;
-        vertexTracker += 6;
+        vertexTracker += vTrackerOffset;
       }
     }
     objIndexOffset += faceVerts;

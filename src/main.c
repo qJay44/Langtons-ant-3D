@@ -1,3 +1,4 @@
+#include "engine/mesh/mesh.h"
 #include <cglm/mat4.h>
 #include <cglm/struct/mat4.h>
 #include <stdio.h>
@@ -79,8 +80,7 @@ int main() {
   activeCamera = &camera;
 
   Ant ant = antCreateDefault();
-  // gridInitMeshFromOBJ("res/obj/Cube.obj");
-  gridInitMeshFromOBJ("res/obj/BeveledCube.obj");
+  gridInitMeshFromOBJ("res/obj/Cube.obj", MESH_LOAD_OBJ_ATTRIBS_PTN);
 
   Font font = fontCreate("res/fonts/Minecraft.otf", 22, 0);
   Text textFps = textCreate(&font, "60");

@@ -3,6 +3,10 @@
 
 #include "cglm/types-struct.h"
 
+// NOTE: Order: P T N
+// ✓ P N, P T, etc.
+// ❌T N P, T P N, etc.
+
 typedef struct {
   GLuint size;
   GLenum type;
@@ -41,6 +45,22 @@ static const VertexAttribute PN_ATTRIBS[] = {
 };
 
 static const VertexLayout PN_LAYOUT = {PN_ATTRIBS, 2, sizeof(VertexPN)};
+
+// ----- PTN ------------------------------------------------------------------------------- //
+
+typedef struct {
+  vec3s pos;
+  vec2s tex;
+  vec3s normal;
+} VertexPTN;
+
+static const VertexAttribute PTN_ATTRIBS[] = {
+  {3, GL_FLOAT},
+  {2, GL_FLOAT},
+  {3, GL_FLOAT},
+};
+
+static const VertexLayout PTN_LAYOUT = {PTN_ATTRIBS, 3, sizeof(VertexPTN)};
 
 // ----------------------------------------------------------------------------------------- //
 

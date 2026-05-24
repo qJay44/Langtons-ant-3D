@@ -8,6 +8,15 @@
 #include "../camera.h"
 #include "vertex.h"
 
+#define MESH_LOAD_OBJ_ATTRIB_POSITION (1 << 0)
+#define MESH_LOAD_OBJ_ATTRIB_TEXTURE  (1 << 1)
+#define MESH_LOAD_OBJ_ATTRIB_NORMAL   (1 << 2)
+
+#define MESH_LOAD_OBJ_ATTRIBS_PT (MESH_LOAD_OBJ_ATTRIB_POSITION | MESH_LOAD_OBJ_ATTRIB_TEXTURE)
+#define MESH_LOAD_OBJ_ATTRIBS_PN (MESH_LOAD_OBJ_ATTRIB_POSITION | MESH_LOAD_OBJ_ATTRIB_NORMAL )
+
+#define MESH_LOAD_OBJ_ATTRIBS_PTN (MESH_LOAD_OBJ_ATTRIBS_PT | MESH_LOAD_OBJ_ATTRIB_NORMAL)
+
 typedef struct {
   size_t count;
 
@@ -36,7 +45,7 @@ typedef struct {
 } MeshData;
 
 // [outData.vertices] and [outData.indices] have to be freed
-void meshLoadObjPN(const char* filepath, MeshData* outData);
+void meshLoadObj(const char* filepath, MeshData* outData, u32 attribFlags);
 
 [[nodiscard]] MeshElements meshCreateElements(const MeshData* data);
 [[nodiscard]] MeshArrays meshCreateArrays(const MeshData* data, GLenum usage);

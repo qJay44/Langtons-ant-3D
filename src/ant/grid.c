@@ -30,56 +30,41 @@ MeshInstanced gridMesh = {0};
 
 static VoxelInstanceAttributes* staticInstanceVertices = NULL;
 
-void gridInitMesh(const GridMeshData* data) {
+void gridInitMesh(const MeshData* data) {
   if (staticInstanceVertices) {
     fprintf(stderr, "[❌gridInit] Grid mesh already initialized");
     exit(EXIT_FAILURE);
   }
 
   staticInstanceVertices = malloc(MAX_VOXELS * sizeof(VoxelInstanceAttributes));
+
+  MeshElements mesh = meshCreateElements(data);
+
+  gridMesh.vao = mesh.vao;
+  gridMesh.vbo = mesh.vbo;
+  gridMesh.ebo = mesh.ebo;
   gridMesh.indices = data->indicesSize / sizeof(data->indices[0]);
 
-  vaoGen(&gridMesh.vao, 1);
-  GLBuffer_gen(&gridMesh.vbo, GL_ARRAY_BUFFER, 1);
-  GLBuffer_gen(&gridMesh.vboInstanced, GL_ARRAY_BUFFER, 1);
-  GLBuffer_gen(&gridMesh.ebo, GL_ELEMENT_ARRAY_BUFFER, 1);
-
   vaoBind(&gridMesh.vao);
-
-  GLBuffer_allocate(&gridMesh.vbo, data->vertices, data->verticesSize, GL_STATIC_DRAW);
-  GLBuffer_allocate(&gridMesh.ebo, data->indices, data->indicesSize, GL_STATIC_DRAW);
-
-  GLBuffer_bind(&gridMesh.vbo);
-  GLBuffer_bind(&gridMesh.ebo);
-
-  size_t typeSize = sizeof(float);
-  size_t stride = sizeof(data->vertices[0]);
-  vaoLinkAttrib(0, 3, GL_FLOAT, stride, (void*)(0 * typeSize));
-  vaoLinkAttrib(1, 3, GL_FLOAT, stride, (void*)(3 * typeSize));
-
+  GLBuffer_gen(&gridMesh.vboInstanced, GL_ARRAY_BUFFER, 1);
   GLBuffer_bind(&gridMesh.vboInstanced);
-  vaoLinkAttrib(2, 3, GL_FLOAT, sizeof(VoxelInstanceAttributes), (void*)0);
-  glEnableVertexAttribArray(3);
-  glVertexAttribIPointer(3, 1, GL_INT, sizeof(VoxelInstanceAttributes), (void*)(sizeof(vec3s))); // float matches int size
+  vaoLinkAttrib(3, 3, GL_FLOAT, sizeof(VoxelInstanceAttributes), (void*)0);
+  glEnableVertexAttribArray(4);
+  glVertexAttribIPointer(4, 1, GL_INT, sizeof(VoxelInstanceAttributes), (void*)(sizeof(vec3s))); // float matches int size
 
-  glVertexAttribDivisor(2, 1);
   glVertexAttribDivisor(3, 1);
+  glVertexAttribDivisor(4, 1);
 
   vaoUnbind();
   GLBuffer_unbind(&gridMesh.vbo);
 }
 
-void gridInitMeshFromOBJ(const char* filepath) {
-  MeshData data;
-  meshLoadObjPN(filepath, &data);
+void gridInitMeshFromOBJ(const char* filepath, u32 attribFlags) {
+  MeshData data = {0};
+  data.layout = PTN_LAYOUT;
 
-  GridMeshData gridData;
-  gridData.vertices = (VertexPN*)data.vertices;
-  gridData.verticesSize = data.verticesSize;
-  gridData.indices = data.indices;
-  gridData.indicesSize = data.indicesSize;
-
-  gridInitMesh(&gridData);
+  meshLoadObj(filepath, &data, attribFlags);
+  gridInitMesh(&data);
 
   free(data.vertices);
   free(data.indices);
