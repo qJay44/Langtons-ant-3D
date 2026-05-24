@@ -7,18 +7,23 @@
 #include <cglm/util.h>
 #include <cglm/vec3.h>
 
-typedef enum {
-  TURN_LEFT,
-  TURN_RIGHT,
-  TURN_UP,
-  TURN_DOWN,
-} AntTurn;
+static const ivec3s initPos = (ivec3s){{0, 0,  0}};
+static const ivec3s initDir = (ivec3s){{0, 0, -1}};
+static const ivec3s initUp  = (ivec3s){{0, 1,  0}};
 
 Ant antCreateDefault() {
   Ant ant = {
-    {{ 0,  0,  0}},
-    {{ 0, -1,  0}},
-    {{ 0,  0, -1}},
+    initPos,
+    initDir,
+    initUp,
+    {
+      TURN_LEFT,
+      TURN_RIGHT,
+      TURN_UP,
+      TURN_DOWN,
+      TURN_LEFT,
+    },
+    ANT_MAX_STATES,
     0
   };
 
@@ -54,34 +59,24 @@ static void antTurn(Ant* self, AntTurn turn) {
 
 void antUpdate(Ant* self) {
   int currState = gridGetVoxel(self->pos);
+  int nextState = (currState + 1) % self->activeStates;
 
-  switch (currState) {
-    case 0:
-      gridSetVoxel(self->pos, 1);
-      antTurn(self, TURN_LEFT);
-      break;
-    case 1:
-      gridSetVoxel(self->pos, 2);
-      antTurn(self, TURN_RIGHT);
-      break;
-    case 2:
-      gridSetVoxel(self->pos, 3);
-      antTurn(self, TURN_UP);
-      break;
-    case 3:
-      gridSetVoxel(self->pos, 4);
-      antTurn(self, TURN_DOWN);
-      break;
-    case 4:
-      gridSetVoxel(self->pos, 5);
-      antTurn(self, TURN_UP);
-      break;
-    case 5:
-      gridSetVoxel(self->pos, 0);
-      antTurn(self, TURN_LEFT);
-      break;
-  }
-
+  gridSetVoxel(self->pos, nextState);
+  antTurn(self, self->rules[currState]);
   antMove(self);
+}
+
+void antRandomizeRules(Ant* self) {
+  gridClearStates();
+
+  self->activeStates = rand() % ANT_MAX_STATES + 1;
+  for (int i = 0; i < self->activeStates; i++)
+    self->rules[i] = (AntTurn)(rand() % 4);
+
+
+  self->pos = initPos;
+  self->dir = initDir;
+  self->up = initUp;
+  self->steps = 0;
 }
 

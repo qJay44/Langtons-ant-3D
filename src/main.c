@@ -24,6 +24,7 @@
 #include "engine/text/text.h"
 
 struct Context ctx = {0};
+Ant* activeAnt = NULL;
 
 int main() {
   // Change cwd to where "src" directory located (since launching the executable always from the directory where its located)
@@ -81,6 +82,7 @@ int main() {
 
   Ant ant = antCreateDefault();
   gridInitMeshFromOBJ("res/obj/Cube.obj", MESH_LOAD_OBJ_ATTRIBS_PTN);
+  activeAnt = &ant;
 
   Font font = fontCreate("res/fonts/Minecraft.otf", 22, 0);
   Text textFps = textCreate(&font, "60");

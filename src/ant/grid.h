@@ -10,7 +10,8 @@ void gridInitMeshFromOBJ(const char* filepath, u32 attribFlags);
 int gridGetVoxel(ivec3s coord);
 void gridSetVoxel(ivec3s coord, int state);
 void gridUpdateMesh();
-void gridClear();
+void gridClearStates();
+void gridClearMesh();
 
 extern MeshInstanced gridMesh;
 

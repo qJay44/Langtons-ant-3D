@@ -1,8 +1,11 @@
 #ifndef INPUTS_H
 #define INPUTS_H
 
+#include "ant/ant.h"
 #include "engine/camera.h"
 #include "Context.h"
+
+extern Ant* activeAnt;
 
 static inline void inputsMoveCamera(Camera* camera, float dt) {
   if (glfwGetKey(ctx.window, GLFW_KEY_Q) == GLFW_PRESS)
@@ -42,6 +45,10 @@ static inline void keyCallback(GLFWwindow* window, int key, int scancode, int ac
         if (ctx.movesPerFrame < 1)
           ctx.movesPerFrame = 1;
       }
+      break;
+    case GLFW_KEY_R:
+      if (action == GLFW_PRESS)
+        antRandomizeRules(activeAnt);
       break;
   }
 

@@ -110,7 +110,12 @@ void gridUpdateMesh() {
     GLBuffer_allocate(&gridMesh.vboInstanced, staticInstanceVertices, gridMesh.instanceCount * sizeof(VoxelInstanceAttributes), GL_DYNAMIC_DRAW);
 }
 
-void gridClear() {
+void gridClearStates() {
+  if (grid) hmfree(grid);
+  grid = NULL;
+}
+
+void gridClearMesh() {
   if (staticInstanceVertices) free(staticInstanceVertices);
   staticInstanceVertices = NULL;
 }
