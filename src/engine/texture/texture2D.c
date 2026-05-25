@@ -12,7 +12,7 @@ Texture2D texture2D_createFromMemory(const TextureDescriptor* desc, const image2
   }
 
   glGenTextures(1, &id);
-  texture2D_bind(id, desc->unit);
+  texture2D_bind(id, 0);
   glTexParameteri(desc->target, GL_TEXTURE_MIN_FILTER, desc->minFilter);
   glTexParameteri(desc->target, GL_TEXTURE_MAG_FILTER, desc->magFilter);
   glTexParameteri(desc->target, GL_TEXTURE_WRAP_S, desc->wrapS);

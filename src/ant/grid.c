@@ -9,7 +9,7 @@
 #include "cglm/types-struct.h"
 #include "../engine/mesh/mesh.h"
 
-#define MAX_VOXELS 100000u
+#define MAX_VOXELS 1000000u
 
 typedef struct {
   int x, y, z;

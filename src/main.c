@@ -1,4 +1,3 @@
-#include "engine/mesh/mesh.h"
 #include <cglm/mat4.h>
 #include <cglm/struct/mat4.h>
 #include <stdio.h>
@@ -12,6 +11,7 @@
 #define CHDIR(p) chdir(p);
 #endif
 
+#include "environment.h"
 #include "inputs.h"
 #include "sun.h"
 
@@ -19,6 +19,7 @@
 #include "ant/grid.h"
 #include "cglm/types-struct.h"
 #include "engine/camera.h"
+#include "engine/mesh/mesh.h"
 #include "engine/mesh/meshInstanced.h"
 #include "engine/text/font.h"
 #include "engine/text/text.h"
@@ -69,15 +70,13 @@ int main() {
   const vec2s winCenter = getWinCenter();
   glfwSetCursorPos(window, winCenter.x, winCenter.y);
 
-  Sun sun = sunCreateDefault();
-
   shadersFolder = "res/shaders";
-  Shader sunShader = shaderCreate("sun.vert", "sun.frag", NULL);
+  Shader environmentShader = shaderCreate("environment.vert", "environment.frag", NULL);
   Shader voxelShader = shaderCreate("voxel.vert", "voxel.frag", NULL);
   Shader textShader = shaderCreate("text.vert", "text.frag", NULL);
-  sunSetUniforms(&sun, &voxelShader);
 
   Camera camera = cameraCreateDefault();
+  camera.speed *= 2.f;
   activeCamera = &camera;
 
   Ant ant = antCreateDefault();
@@ -96,6 +95,10 @@ int main() {
 
   Text textStepsPerFrame = textCreate(&font, "0");
   textSetPosUnderOther(&textStepsPerFrame, &textInstances, (vec2s){{0.f, -20.f}});
+
+  Environment environment = envCreateDefault("res/tex/cubemaps/Cubemap_Sky_01-512x512.png");
+
+  sunSetUniforms(&environment.sun, &voxelShader);
 
   double titleTimer = glfwGetTime();
   double prevTime = titleTimer;
@@ -143,7 +146,7 @@ int main() {
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
 
-    sunDraw(&sun, activeCamera, &sunShader);
+    envDraw(&environment, activeCamera, &environmentShader);
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
@@ -155,7 +158,7 @@ int main() {
 
     textDraw(&textFps, activeCamera, &textShader);
     textDraw(&textSteps, activeCamera, &textShader);
-    textDraw(&textStepsPerFrame, activeCamera, &textShader);
+    textDrawWithOutline(&textStepsPerFrame, activeCamera, &textShader);
     textDraw(&textInstances, activeCamera, &textShader);
 
     // ----------------------------------------------------------- //

@@ -7,13 +7,15 @@
 #include <stdio.h>
 
 #include "../mesh/vertex.h"
-#include "cglm/struct/cam.h"
 #include "cglm/affine.h"
+#include "cglm/struct/cam.h"
 #include "cglm/struct/vec2.h"
+#include "cglm/struct/vec3.h"
 
 Text textCreate(const Font* font, const char* text) {
   Text self = {0};
   self.font = font;
+  self.color = glms_vec3_one();
 
   MeshData meshData = {0};
   meshData.verticesSize = sizeof(VertexPT) * TEXT_MAX_LEN * 6;
@@ -126,6 +128,7 @@ void textDraw(Text* self, const Camera* cam, Shader* shader) {
   mat4s proj = glms_ortho(0.f, winSize.x, 0.f, winSize.y, -1.f, 1.f);
 
   shaderSetUniformMat4f(shader, "u_proj", proj.raw);
+  shaderSetUniform3f(shader, "u_color", self->color.raw);
   texture2D_bind(self->font->atlas, 0);
 
   glDepthMask(GL_FALSE);
@@ -136,5 +139,29 @@ void textDraw(Text* self, const Camera* cam, Shader* shader) {
 
   glDepthMask(GL_TRUE);
   glDisable(GL_BLEND);
+}
+
+void textDrawWithOutline(Text* self, const Camera* cam, Shader* shader) {
+  texture2D_bind(self->font->atlas, 0);
+
+  float t = 1.5f; // thickness
+  float shifts[8][2] = {
+    {-t, 0.f}, { t, 0.f}, {0.0f, -t}, {0.0f, t},
+    {-t,  -t}, {-t,   t}, {t,    -t}, {t,    t}
+  };
+
+  mat4s origTrans = self->mesh.mats.trans;
+  vec3s origColor = self->color;
+  self->color = self->colorOutline;
+
+  for (int i = 0; i < 8; i++) {
+    vec3s trans = (vec3s){{shifts[i][0], shifts[i][1], 0.f}};
+    glm_translate(self->mesh.mats.trans.raw, trans.raw);
+    textDraw(self, cam, shader);
+  }
+
+  self->mesh.mats.trans = origTrans;
+  self->color = origColor;
+  textDraw(self, cam, shader);
 }
 

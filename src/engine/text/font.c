@@ -26,7 +26,7 @@ Font fontCreate(const char* fontPath, u32 height, u32 width) {
 void fontLoad(Font* self) {
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-  TextureDescriptor texDesc = textureDescDefault;
+  TextureDescriptor texDesc = texture2D_defaultDesc;
   texDesc.internalFormat = GL_RED;
   texDesc.format = GL_RED;
 
