@@ -40,10 +40,12 @@ void fontLoad(Font* self) {
   texture2D_bind(self->atlas, 0);
 
   for (u8 c = 0; c < 128; c++) {
-    if (FT_Load_Char(self->face, c, FT_LOAD_RENDER)) {
+    if (FT_Load_Char(self->face, c, FT_LOAD_DEFAULT)) {
       fprintf(stderr, "[fontLoad] ⚠️Failed to load glyph [%u]", c);
       continue;
     }
+
+    FT_Render_Glyph(self->face->glyph, FT_RENDER_MODE_SDF);
 
     FT_Bitmap bmp = self->face->glyph->bitmap;
     FontGlyph glyph = {0};

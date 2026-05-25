@@ -158,7 +158,7 @@ int main() {
 
     textDraw(&textFps, activeCamera, &textShader);
     textDraw(&textSteps, activeCamera, &textShader);
-    textDrawWithOutline(&textStepsPerFrame, activeCamera, &textShader);
+    textDraw(&textStepsPerFrame, activeCamera, &textShader);
     textDraw(&textInstances, activeCamera, &textShader);
 
     // ----------------------------------------------------------- //

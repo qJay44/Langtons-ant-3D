@@ -1,10 +1,10 @@
 #ifndef FONT_H
 #define FONT_H
 
-#include "cglm/types-struct.h"
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
+#include "cglm/types-struct.h"
 #include "../texture/texture2D.h"
 
 typedef struct {

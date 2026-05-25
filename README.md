@@ -3,6 +3,8 @@
 * C99 compiler (GCC / Clang)
 * OpenGL drivers
 
+---
+
 ### 🛠️ Dependencies & Paths
 
 #### System libs (configured via CMake)

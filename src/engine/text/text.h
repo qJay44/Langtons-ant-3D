@@ -23,7 +23,6 @@ void textSetPos(Text* self, vec2s pos);
 void textSetPosRelative(Text* self, vec2s pos);
 void textSetPosUnderOther(Text* self, const Text* other, vec2s offset);
 void textDraw(Text* self, const Camera* cam, Shader* shader);
-void textDrawWithOutline(Text* self, const Camera* cam, Shader* shader);
 
 #endif
 

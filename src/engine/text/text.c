@@ -129,39 +129,16 @@ void textDraw(Text* self, const Camera* cam, Shader* shader) {
 
   shaderSetUniformMat4f(shader, "u_proj", proj.raw);
   shaderSetUniform3f(shader, "u_color", self->color.raw);
+  shaderSetUniform3f(shader, "u_colorOutline", self->colorOutline.raw);
   texture2D_bind(self->font->atlas, 0);
 
   glDepthMask(GL_FALSE);
   glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_SRC_ALPHA);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   meshDrawArrays(&self->mesh, cam, shader);
 
   glDepthMask(GL_TRUE);
   glDisable(GL_BLEND);
-}
-
-void textDrawWithOutline(Text* self, const Camera* cam, Shader* shader) {
-  texture2D_bind(self->font->atlas, 0);
-
-  float t = 1.5f; // thickness
-  float shifts[8][2] = {
-    {-t, 0.f}, { t, 0.f}, {0.0f, -t}, {0.0f, t},
-    {-t,  -t}, {-t,   t}, {t,    -t}, {t,    t}
-  };
-
-  mat4s origTrans = self->mesh.mats.trans;
-  vec3s origColor = self->color;
-  self->color = self->colorOutline;
-
-  for (int i = 0; i < 8; i++) {
-    vec3s trans = (vec3s){{shifts[i][0], shifts[i][1], 0.f}};
-    glm_translate(self->mesh.mats.trans.raw, trans.raw);
-    textDraw(self, cam, shader);
-  }
-
-  self->mesh.mats.trans = origTrans;
-  self->color = origColor;
-  textDraw(self, cam, shader);
 }
 
