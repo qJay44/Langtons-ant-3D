@@ -3,10 +3,6 @@
 
 #include "cglm/types-struct.h"
 
-// NOTE: Order: P T N
-// ✓ P N, P T, etc.
-// ❌T N P, T P N, etc.
-
 typedef struct {
   GLuint size;
   GLenum type;

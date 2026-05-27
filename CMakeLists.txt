@@ -30,7 +30,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   ${CGLM_PATH}/include
   ${STB_PATH}/include
   ${PROJECT_SOURCE_DIR}/include
-  ${FAST_OBJ_PATH}
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE glfw GLAD m Freetype::Freetype)

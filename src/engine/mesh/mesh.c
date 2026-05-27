@@ -4,7 +4,6 @@
 
 #include "Context.h"
 #include "GLBuffer.h"
-#include "fast_obj.h"
 #include "cglm/struct/mat4.h"
 #include "vertex.h"
 
@@ -21,80 +20,6 @@ static void setGlobalUniforms(Shader* shader) {
   vec2s ws = getWinSizef();
 
   shaderSetUniform2f(shader, "u_resolution", ws.raw);
-}
-
-void meshLoadObj(const char* filepath, MeshData* ioData, u32 attribFlags) {
-  fastObjMesh* obj = fast_obj_read(filepath);
-  if (!obj) {
-    fprintf(stderr, "❌Failed to open OBJ: [%s]\n", filepath);
-    exit(EXIT_FAILURE);
-  }
-
-  u32 totalTriangles = 0;
-  for (u32 i = 0; i < obj->face_count; i++)
-    totalTriangles += obj->face_vertices[i] - 2;
-
-  u32 indicesCount = totalTriangles * 3;
-
-  ioData->verticesSize = indicesCount * ioData->layout.stride;
-  ioData->indicesSize  = indicesCount * sizeof(ioData->indices[0]);
-
-  ioData->vertices = malloc(ioData->verticesSize);
-  ioData->indices  = malloc(ioData->indicesSize);
-
-  if (!ioData->vertices || !ioData->indices) {
-    fprintf(stderr, "❌ Memory allocation failed while loading OBJ: [%s]\n", filepath);
-    exit(EXIT_FAILURE);
-  }
-
-  u32 vertexTracker = 0;
-  u32 indexTracker = 0;
-  u32 objIndexOffset = 0; // Exact position in the raw OBJ index pool
-
-  for (u32 i = 0; i < obj->face_count; i++) {
-    u32 faceVerts = obj->face_vertices[i];
-
-    // Fan triangulate polygons (safely turns quads/n-gons into multiple triangles)
-    for (u32 j = 0; j < faceVerts - 2; j++) {
-      u32 cornerIndices[3];
-      cornerIndices[0] = objIndexOffset;
-      cornerIndices[1] = objIndexOffset + j + 1;
-      cornerIndices[2] = objIndexOffset + j + 2;
-
-      for (u32 k = 0; k < 3; k++) {
-        fastObjIndex idx = obj->indices[cornerIndices[k]];
-        u32 vTrackerOffset = 0;
-
-        if ((attribFlags & MESH_LOAD_OBJ_ATTRIB_POSITION) && idx.p) {
-          ioData->vertices[vertexTracker + 0] = obj->positions[idx.p * 3 + 0];
-          ioData->vertices[vertexTracker + 1] = obj->positions[idx.p * 3 + 1];
-          ioData->vertices[vertexTracker + 2] = obj->positions[idx.p * 3 + 2];
-          vTrackerOffset += 3;
-        }
-
-        if ((attribFlags & MESH_LOAD_OBJ_ATTRIB_TEXTURE) && idx.t) {
-          ioData->vertices[vertexTracker + vTrackerOffset + 0] = obj->texcoords[idx.t * 2 + 0];
-          ioData->vertices[vertexTracker + vTrackerOffset + 1] = obj->texcoords[idx.t * 2 + 1];
-          vTrackerOffset += 2;
-        }
-
-        if ((attribFlags & MESH_LOAD_OBJ_ATTRIB_NORMAL) && idx.n) {
-          ioData->vertices[vertexTracker + vTrackerOffset + 0] = obj->normals[idx.n * 3 + 0];
-          ioData->vertices[vertexTracker + vTrackerOffset + 1] = obj->normals[idx.n * 3 + 1];
-          ioData->vertices[vertexTracker + vTrackerOffset + 2] = obj->normals[idx.n * 3 + 2];
-          vTrackerOffset += 3;
-        }
-
-        ioData->indices[indexTracker] = indexTracker;
-
-        indexTracker++;
-        vertexTracker += vTrackerOffset;
-      }
-    }
-    objIndexOffset += faceVerts;
-  }
-
-  fast_obj_destroy(obj);
 }
 
 MeshElements meshCreateElements(const MeshData* data) {

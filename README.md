@@ -30,8 +30,6 @@ C implementation of **[Langton's ant](https://en.wikipedia.org/wiki/Langton%27s_
   * Path: `$ENV{HOME}/Libs/cglm-0.9.6`
 * 📦 **[stb_ds.h & stb_image.h](https://github.com)** — Simple hashmap and image loading
   * Path: `$ENV{HOME}/Libs/stb`
-* 📦 **[fast_obj v1.3](https://github.com)** — Fast Wavefront OBJ loader
-  * Path: `$ENV{HOME}/Libs/fast_obj-1.3`
 
 ---
 
