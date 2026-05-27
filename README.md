@@ -2,7 +2,9 @@
 
 C implementation of **[Langton's ant](https://en.wikipedia.org/wiki/Langton%27s_ant)** rendered in 3D using OpenGL
 
-<video src="media/app-demo.mp4" autoplay loop muted playsinline width="100%"></video>
+ <div align="center">
+   <video src="https://github.com/user-attachments/assets/03aa873d-d03d-45cd-8f49-07fda4857315" width="100%"></video>
+ </div>
 
 ---
 
