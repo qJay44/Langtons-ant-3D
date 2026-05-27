@@ -5,7 +5,7 @@
 
 typedef GLuint Texture3D;
 
-Texture3D texture3D_createEmpty(const TextureDescriptor* desc, GLsizei width, GLsizei height, GLsizei depth);
+[[nodiscard]] Texture3D texture3D_createEmpty(const TextureDescriptor* desc, GLsizei width, GLsizei height, GLsizei depth);
 
 void texture3D_bind(Texture3D self, u32 unit);
 void texture3D_unbind();

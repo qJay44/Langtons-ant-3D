@@ -1,3 +1,11 @@
+## Description
+
+C implementation of **[Langton's ant](https://en.wikipedia.org/wiki/Langton%27s_ant)** rendered in 3D using OpenGL
+
+<video src="media/app-demo.mp4" autoplay loop muted playsinline width="100%"></video>
+
+---
+
 ### 🚀 Prerequisites
 * CMake 3.21
 * C99 compiler (GCC / Clang)

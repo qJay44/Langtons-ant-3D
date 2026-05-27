@@ -96,9 +96,9 @@ int main() {
 
   Camera camera = cameraCreateDefault();
   camera.speed *= 2.f;
-  camera.position.x = grid.size * 0.5f;
-  camera.position.y = grid.size * 0.5f;
-  camera.position.z = grid.size * 0.5f;
+  camera.position.x = grid.size * 0.5f + 5.f;
+  camera.position.y = grid.size * 0.5f + 5.f;
+  camera.position.z = grid.size * 0.5f + 5.f;
   activeCamera = &camera;
 
   Ant ant = antCreateDefault();
