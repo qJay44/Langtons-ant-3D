@@ -7,8 +7,8 @@
 typedef GLuint Texture2D;
 
 // [img] only needs width, height and pixels
-Texture2D texture2D_createFromMemory(const TextureDescriptor* desc, const image2D* img);
-Texture2D texture2D_createEmpty(const TextureDescriptor* desc, int width, int height);
+[[nodiscard]] Texture2D texture2D_createFromMemory(const TextureDescriptor* desc, const image2D* img);
+[[nodiscard]] Texture2D texture2D_createEmpty(const TextureDescriptor* desc, int width, int height);
 
 void texture2D_bind(Texture2D self, u32 unit);
 void texture2D_unbind();

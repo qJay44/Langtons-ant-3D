@@ -19,7 +19,7 @@ typedef struct {
 
   // Also can be static if the only ant
   AntTurn rules[ANT_MAX_STATES];
-  int activeStates;
+  u8 activeStates;
 
   int steps;
 } Ant;

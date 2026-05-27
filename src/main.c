@@ -1,3 +1,9 @@
+#include "engine/fbo.h"
+#include "engine/mesh/mesh.h"
+#include "engine/shader.h"
+#include "engine/texture/TextureDescriptor.h"
+#include "engine/texture/texture2D.h"
+#include "engine/texture/textureCubemap.h"
 #include <cglm/mat4.h>
 #include <cglm/struct/mat4.h>
 #include <stdio.h>
@@ -19,8 +25,6 @@
 #include "ant/grid.h"
 #include "cglm/types-struct.h"
 #include "engine/camera.h"
-#include "engine/mesh/mesh.h"
-#include "engine/mesh/meshInstanced.h"
 #include "engine/text/font.h"
 #include "engine/text/text.h"
 
@@ -70,18 +74,17 @@ int main() {
   const vec2s winCenter = getWinCenter();
   glfwSetCursorPos(window, winCenter.x, winCenter.y);
 
+  // ----- Shaders --------------------------------------------- //
+
   shadersFolder = "res/shaders";
-  Shader environmentShader = shaderCreate("environment.vert", "environment.frag", NULL);
   Shader voxelShader = shaderCreate("voxel.vert", "voxel.frag", NULL);
   Shader textShader = shaderCreate("text.vert", "text.frag", NULL);
 
-  Camera camera = cameraCreateDefault();
-  camera.speed *= 2.f;
-  activeCamera = &camera;
+  Shader extractShader = shaderCreate("bloom/uv.vert", "bloom/extract.frag", NULL);
+  Shader blurShader = shaderCreate("bloom/uv.vert", "bloom/blur.frag", NULL);
+  Shader bloomShader = shaderCreate("bloom/uv.vert", "bloom/bloom.frag", NULL);
 
-  Ant ant = antCreateDefault();
-  gridInitMeshFromOBJ("res/obj/Cube.obj", MESH_LOAD_OBJ_ATTRIBS_PTN);
-  activeAnt = &ant;
+  // ----- Text ------------------------------------------------ //
 
   Font font = fontCreate("res/fonts/Minecraft.otf", 22, 0);
   Text textFps = textCreate(&font, "60");
@@ -96,18 +99,70 @@ int main() {
   Text textStepsPerFrame = textCreate(&font, "0");
   textSetPosUnderOther(&textStepsPerFrame, &textInstances, (vec2s){{0.f, -20.f}});
 
-  Environment environment = envCreateDefault("res/tex/cubemaps/Cubemap_Sky_01-512x512.png");
+  // ----- Other ----------------------------------------------- //
 
+  gridInit(128u);
+
+  Camera camera = cameraCreateDefault();
+  camera.speed *= 2.f;
+  camera.position.x = grid.size * 0.5f;
+  camera.position.y = grid.size * 0.5f;
+  camera.position.z = grid.size * 0.5f;
+  activeCamera = &camera;
+
+  Ant ant = antCreateDefault();
+  activeAnt = &ant;
+
+  Environment environment = envCreateDefault("res/tex/cubemaps/Cubemap_Sky_01-512x512.png");
   sunSetUniforms(&environment.sun, &voxelShader);
+
+  // ----- Framebuffers ---------------------------------------- //
+
+  // ===== HDR FBO ============================================= //
+
+  TextureDescriptor hdrTexDesc = texture2D_defaultDesc;
+  hdrTexDesc.internalFormat = GL_RGBA16F;
+  hdrTexDesc.format = GL_RGBA;
+  hdrTexDesc.type = GL_HALF_FLOAT;
+  hdrTexDesc.minFilter = GL_LINEAR;
+  hdrTexDesc.magFilter = GL_LINEAR;
+
+  Texture2D texScreenHDR = texture2D_createEmpty(&hdrTexDesc, initWidth, initHeight);
+
+  FBO fboScreenHDR = {0};
+  fboGen(&fboScreenHDR, 1);
+  fboAttach2D(&fboScreenHDR, GL_COLOR_ATTACHMENT0, texScreenHDR);
+
+  // ===== Blur FBO ============================================ //
+
+  TextureDescriptor blurTexDesc = texture2D_defaultDesc;
+  blurTexDesc.internalFormat = GL_RGBA16F;
+  blurTexDesc.format = GL_RGBA;
+  blurTexDesc.type = GL_HALF_FLOAT;
+  blurTexDesc.minFilter = GL_LINEAR;
+  blurTexDesc.magFilter = GL_LINEAR;
+
+  Texture2D texBlurH = texture2D_createEmpty(&blurTexDesc, initWidth / 2, initHeight / 2);
+  Texture2D texBlurV = texture2D_createEmpty(&blurTexDesc, initWidth / 2, initHeight / 2);
+
+  FBO fboScreenBlur = {0};
+  fboGen(&fboScreenBlur, 1);
+  fboAttach2D(&fboScreenBlur, GL_COLOR_ATTACHMENT0, texBlurH);
+  fboAttach2D(&fboScreenBlur, GL_COLOR_ATTACHMENT1, texBlurV);
+
+  // =========================================================== //
+
+  // ----- Pre loop -------------------------------------------- //
 
   double titleTimer = glfwGetTime();
   double prevTime = titleTimer;
   double currTime = prevTime + 1.f;
   float dt = currTime;
   float fpsTimer = 0.f;
+  size_t blurAmount = 4;
 
-  glCullFace(GL_BACK);
-  glFrontFace(GL_CCW);
+  glDisable(GL_DEPTH_TEST);
+  glDisable(GL_CULL_FACE);
 
   // Render loop
   while (!glfwWindowShouldClose(window)) {
@@ -127,8 +182,7 @@ int main() {
       antUpdate(&ant);
     }
 
-    gridUpdateMesh();
-
+    // Update fps text every 0.1 seconds
     if (fpsTimer > 0.1f){
       int fps = (int)(1.f / fmaxf(dt, 0.0001f));
       textSetTexti(&textFps, fps);
@@ -136,25 +190,58 @@ int main() {
     }
 
     textSetTextFmt(&textSteps, "Steps: %d", ant.steps);
-    textSetTextFmt(&textInstances, "Voxels: %d", gridMesh.instanceCount);
+    textSetTextFmt(&textInstances, "Voxels: %zu", gridGetVoxelsCount());
     textSetTextFmt(&textStepsPerFrame, "Speed: x%d", ctx.movesPerFrame);
 
-    // ----- Draw ------------------------------------------------ //
+    // ----- Draw to HDR buffer ---------------------------------- //
 
-    glClearColor(0.07f, 0.13f, 0.17f, 1.f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_CULL_FACE);
+    fboBind(&fboScreenHDR);
+    glViewport(0, 0, initWidth, initHeight);
+    glDrawBuffer(GL_COLOR_ATTACHMENT0);
+    glClearColor(0.f, 0.f, 0.f, 1.f);
+    glClear(GL_COLOR_BUFFER_BIT);
 
-    envDraw(&environment, activeCamera, &environmentShader);
+    textureCubemap_bind(environment.skybox, 1);
+    gridDraw(activeCamera, &voxelShader);
 
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
+    // ----- Draw to Blur buffer (first pass) -------------------- //
 
-    meshInstancedDraw(&gridMesh, activeCamera, &voxelShader);
+    fboBind(&fboScreenBlur);
+    glViewport(0, 0, initWidth / 2, initHeight / 2);
+    glDrawBuffer(GL_COLOR_ATTACHMENT1); // Write to vertical
+    glClearColor(0.f, 0.f, 0.f, 1.f);
+    glClear(GL_COLOR_BUFFER_BIT);
 
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_CULL_FACE);
+    texture2D_bind(texScreenHDR, 0);
+    meshDrawScreen(activeCamera, &extractShader);
+
+    // ----- Draw to Blur buffer --------------------------------- //
+
+    for (size_t i = 0; i < blurAmount; i++) {
+      fboBind(&fboScreenBlur);
+      glDrawBuffer(GL_COLOR_ATTACHMENT0); // Write to horizontal
+
+      texture2D_bind(texBlurV, 0); // Read from vertical
+      shaderSetUniform1ui(&blurShader, "u_horizontal", 1u);
+      meshDrawScreen(activeCamera, &blurShader);
+
+      glDrawBuffer(GL_COLOR_ATTACHMENT1); // Write to vertical
+
+      texture2D_bind(texBlurH, 0); // Read from horizontal
+      shaderSetUniform1ui(&blurShader, "u_horizontal", 0u);
+      meshDrawScreen(activeCamera, &blurShader);
+    }
+
+    // ----- Draw to the main buffer ----------------------------- //
+
+    fboUnbind();
+    glViewport(0, 0, initWidth, initHeight);
+    glClearColor(0.f, 0.f, 0.f, 1.f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    texture2D_bind(texBlurH, 0);
+    texture2D_bind(texScreenHDR, 1);
+    meshDrawScreen(activeCamera, &bloomShader);
 
     textDraw(&textFps, activeCamera, &textShader);
     textDraw(&textSteps, activeCamera, &textShader);

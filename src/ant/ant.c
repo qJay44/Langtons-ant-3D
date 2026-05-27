@@ -7,13 +7,17 @@
 #include <cglm/util.h>
 #include <cglm/vec3.h>
 
-static const ivec3s initPos = (ivec3s){{0, 0,  0}};
 static const ivec3s initDir = (ivec3s){{0, 0, -1}};
 static const ivec3s initUp  = (ivec3s){{0, 1,  0}};
 
 Ant antCreateDefault() {
+  ivec3s pos = {0};
+  pos.x = grid.size / 2;
+  pos.y = grid.size / 2;
+  pos.z = grid.size / 2;
+
   Ant ant = {
-    initPos,
+    pos,
     initDir,
     initUp,
     {
@@ -58,8 +62,9 @@ static void antTurn(Ant* self, AntTurn turn) {
 }
 
 void antUpdate(Ant* self) {
-  int currState = gridGetVoxel(self->pos);
-  int nextState = (currState + 1) % self->activeStates;
+  u32 currState = gridGetVoxel(self->pos);
+  u32 nextState = (currState + 1) % self->activeStates;
+  nextState += nextState == 0;
 
   gridSetVoxel(self->pos, nextState);
   antTurn(self, self->rules[currState]);
@@ -70,11 +75,15 @@ void antRandomizeRules(Ant* self) {
   gridClearStates();
 
   self->activeStates = rand() % ANT_MAX_STATES + 1;
-  for (int i = 0; i < self->activeStates; i++)
+  for (u8 i = 0; i < self->activeStates; i++)
     self->rules[i] = (AntTurn)(rand() % 4);
 
+  ivec3s pos = {0};
+  pos.x = grid.size / 2;
+  pos.y = grid.size / 2;
+  pos.z = grid.size / 2;
 
-  self->pos = initPos;
+  self->pos = pos;
   self->dir = initDir;
   self->up = initUp;
   self->steps = 0;

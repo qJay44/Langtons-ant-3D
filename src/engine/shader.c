@@ -121,6 +121,10 @@ void shaderSetUniform1f(Shader* self, const char* name, float v) {
   glProgramUniform1f(self->id, getUniformLoc(self, name), v);
 }
 
+void shaderSetUniform1ui(Shader* self, const char* name, const u32 v) {
+  glProgramUniform1ui(self->id, getUniformLoc(self, name), v);
+}
+
 void shaderSetUniform3f(Shader* self, const char* name, const vec3 v) {
   glProgramUniform3f(self->id, getUniformLoc(self, name), v[0], v[1], v[2]);
 }

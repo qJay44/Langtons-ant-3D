@@ -2,48 +2,262 @@
 
 out vec4 FragColor;
 
-in vec3 v_worldPos;
-in vec3 v_normal;
-in vec2 v_uv;
-flat in int v_state;
+in vec3 v_rayDir;
 
 uniform vec3 u_lightDir;
+uniform vec3 u_lightColor;
 uniform vec3 u_camPos;
+uniform uint u_gridSize;
+
+layout(binding = 0) uniform usampler3D u_voxelGrid;
+layout(binding = 1) uniform samplerCube u_skybox;
+
+#define RAY_COUNT 3 // TODO: Move to a uniform
 
 const vec3 colors[5] = vec3[] (
-  vec3(1.f,   0.15f, 0.15f), // State 1: Toy Red
-  vec3(0.15f, 0.85f, 0.15f), // State 2: Toy Green
-  vec3(0.15f, 0.45f, 1.f),   // State 3: Toy Blue
-  vec3(1.f,   0.8f,  0.f),   // State 4: Toy Yellow
-  vec3(0.f,   1.f,   1.f)    // State 5: Toy Cyan
+  vec3(1.f,   0.15f, 0.15f), // State 1: Red
+  vec3(0.15f, 0.85f, 0.15f), // State 2: Green
+  vec3(0.15f, 0.45f, 1.f),   // State 3: Blue
+  vec3(1.f,   0.8f,  0.f),   // State 4: Yellow
+  vec3(0.f,   1.f,   1.f)    // State 5: Cyan
 );
 
-void main() {
-  vec3 baseColor = colors[v_state - 1]; // 0 state is "invisible block" (v_state will never be 0)
+struct Ray {
+  vec3 origin;
+  vec3 dir;
+};
 
-  vec3 normal = normalize(v_normal);
-  vec3 viewDir = normalize(u_camPos - v_worldPos);
+struct HitInfo {
+  bool hit;
+  ivec3 coord;
+  vec3 normal;
+  float dist;
+  uint state;
+};
+
+HitInfo rayMarchDDA(Ray ray) {
+  HitInfo info;
+  info.hit = false;
+
+  ivec3 coord = ivec3(floor(ray.origin));
+  vec3 deltaDist = abs(vec3(1.f) / ray.dir);
+  ivec3 stepDir = ivec3(sign(ray.dir));
+  vec3 sideDist;
+
+  if (ray.dir.x < 0.f) sideDist.x = (ray.origin.x - float(coord.x)) * deltaDist.x;
+  else                 sideDist.x = (float(coord.x) + 1.f - ray.origin.x) * deltaDist.x;
+
+  if (ray.dir.y < 0.f) sideDist.y = (ray.origin.y - float(coord.y)) * deltaDist.y;
+  else                 sideDist.y = (float(coord.y) + 1.f - ray.origin.y) * deltaDist.y;
+
+  if (ray.dir.z < 0.f) sideDist.z = (ray.origin.z - float(coord.z)) * deltaDist.z;
+  else                 sideDist.z = (float(coord.z) + 1.f - ray.origin.z) * deltaDist.z;
+
+  vec3 mask = vec3(0.f);
+
+  // TODO: need a uniform for this
+  for(int i = 0; i < 100; i++){
+    if (coord.x < 0 || coord.x >= u_gridSize ||
+        coord.y < 0 || coord.y >= u_gridSize ||
+        coord.z < 0 || coord.z >= u_gridSize) break;
+
+    uint voxelState = texelFetch(u_voxelGrid, coord, 0).r;
+
+    if (voxelState > 0) {
+      info.hit = true;
+      info.state = voxelState;
+      info.coord = coord;
+      info.normal = -vec3(stepDir) * mask;
+
+      if (mask.x > 0.f) info.dist = sideDist.x - deltaDist.x;
+      else if (mask.y > 0.f) info.dist = sideDist.y - deltaDist.y;
+      else info.dist = sideDist.z - deltaDist.z;
+
+      return info;
+    }
+
+    if (sideDist.x < sideDist.y) {
+      if (sideDist.x < sideDist.z) {
+        sideDist.x += deltaDist.x;
+        coord.x += stepDir.x;
+        mask = vec3(1.f, 0.f, 0.f);
+      } else {
+        sideDist.z += deltaDist.z;
+        coord.z += stepDir.z;
+        mask = vec3(0.f, 0.f, 1.f);
+      }
+    } else {
+      if (sideDist.y < sideDist.z) {
+        sideDist.y += deltaDist.y;
+        coord.y += stepDir.y;
+        mask = vec3(0.f, 1.f, 0.f);
+      } else {
+        sideDist.z += deltaDist.z;
+        coord.z += stepDir.z;
+        mask = vec3(0.f, 0.f, 1.f);
+      }
+    }
+  }
+
+  return info;
+}
+
+// 0.f - shadow, 1.f - light source
+float calcShadow(vec3 origin, float maxDist) {
+  ivec3 coord = ivec3(floor(origin));
+  vec3 deltaDist = abs(vec3(1.f) / u_lightDir);
+  ivec3 stepDir = ivec3(sign(u_lightDir));
+  vec3 sideDist;
+
+  if (u_lightDir.x < 0.f) sideDist.x = (origin.x - float(coord.x)) * deltaDist.x;
+  else                 sideDist.x = (float(coord.x) + 1.f - origin.x) * deltaDist.x;
+
+  if (u_lightDir.y < 0.f) sideDist.y = (origin.y - float(coord.y)) * deltaDist.y;
+  else                 sideDist.y = (float(coord.y) + 1.f - origin.y) * deltaDist.y;
+
+  if (u_lightDir.z < 0.f) sideDist.z = (origin.z - float(coord.z)) * deltaDist.z;
+  else                 sideDist.z = (float(coord.z) + 1.f - origin.z) * deltaDist.z;
+
+  float dist = 0.f;
+
+  // TODO: need a uniform for this
+  for(int i = 0; i < 50; i++){
+    if (dist > maxDist)
+      return 1.f;
+
+    if (coord.x < 0 || coord.x >= u_gridSize ||
+        coord.y < 0 || coord.y >= u_gridSize ||
+        coord.z < 0 || coord.z >= u_gridSize)
+      return 1.f;
+
+    if (texelFetch(u_voxelGrid, coord, 0).r > 0)
+      return 0.f;
+
+    if (sideDist.x < sideDist.y) {
+      if (sideDist.x < sideDist.z) {
+        sideDist.x += deltaDist.x;
+        coord.x += stepDir.x;
+      } else {
+        sideDist.z += deltaDist.z;
+        coord.z += stepDir.z;
+      }
+    } else {
+      if (sideDist.y < sideDist.z) {
+        sideDist.y += deltaDist.y;
+        coord.y += stepDir.y;
+      } else {
+        sideDist.z += deltaDist.z;
+        coord.z += stepDir.z;
+      }
+    }
+  }
+
+  return 1.f;
+}
+
+float calcVoxelAO(ivec3 pos, ivec3 normal) {
+  vec3 tangent = normal.y != 0 || normal.z != 0 ? vec3(1.f, 0.f, 0.f) : vec3(0.f, 1.f, 0.f);
+  vec3 bitangent = cross(vec3(normal), tangent);
+  ivec3 t = ivec3(tangent);
+  ivec3 b = ivec3(bitangent);
+
+  uint n1 = texelFetch(u_voxelGrid, pos + t, 0).r;
+  uint n2 = texelFetch(u_voxelGrid, pos - t, 0).r;
+  uint n3 = texelFetch(u_voxelGrid, pos + b, 0).r;
+  uint n4 = texelFetch(u_voxelGrid, pos - b, 0).r;
+
+  float occlusion = (
+    float(n1 > 0) +
+    float(n2 > 0) +
+    float(n3 > 0) +
+    float(n4 > 0)
+  ) * 0.2f;
+
+  return 1.f - occlusion;
+}
+
+float calcFresnel(vec3 viewDir, vec3 normal, float f0) {
+  float cosTheta = clamp(dot(-viewDir, normal), 0.f, 1.f);
+  return f0 + (1.f - f0) * pow(1.f - cosTheta, 5.f);
+}
+
+float calcVoxelEdge(vec3 hitPos) {
+  vec3 d = abs(fract(hitPos) - 0.5f);
+  float w = 0.48f; // Width
+  vec3 smoothEdge = smoothstep(vec3(w), vec3(w + 0.01f), d);
+
+  return max(smoothEdge.x * smoothEdge.y,
+         max(smoothEdge.y * smoothEdge.z,
+             smoothEdge.z * smoothEdge.x));
+}
+
+vec3 calcBeveledNormal(vec3 flatNormal, vec3 hitPos) {
+  vec3 d = fract(hitPos) - 0.5f;
+  vec3 bevel = smoothstep(0.4f, 0.5f, abs(d));
+  bevel *= (1.f - abs(flatNormal)); // Mask out the bevel
+  vec3 bentNormal = flatNormal + bevel * sign(d);
+
+  return normalize(bentNormal);
+}
+
+vec3 calcSpecular(vec3 normal, vec3 viewDir) {
   vec3 halfwayDir = normalize(u_lightDir + viewDir);
+  float specularStrength = 2.5f; // Intensity
+  float shininess = 128.f;       // Higher - smaller, sharper, shinier highlights
 
-  vec2 dist = min(v_uv, vec2(1.f) - v_uv);
-  float minGlow = min(dist.x, dist.y);
+  float spec = pow(max(dot(normal, halfwayDir), 0.f), shininess);
 
-  vec3 finalColor = baseColor;
+  return specularStrength * spec * u_lightColor;
+}
 
-  if (minGlow < 0.03f)
-    finalColor = baseColor * 0.5f;
+void main() {
+  Ray ray;
+  ray.origin = u_camPos;
+  ray.dir = normalize(v_rayDir);
 
-  // Soft Diffuse (Molded Plastic feel)
-  // We remap the diffuse range from [0, 1] to [0.3, 1.0] so the shadows aren't pitch black
-  float diffuseFactor = max(dot(normal, u_lightDir), 0.f);
-  float softDiffuse = mix(0.35f, 1.f, diffuseFactor);
-  vec3 diffuseColor = finalColor * softDiffuse;
+  vec3 finalColor = vec3(0.f);
+  float intensity = 1.f;
 
-  float shininess = 64.f;
-  float specFactor = pow(max(dot(normal, halfwayDir), 0.f), shininess);
-  vec3 specularColor = vec3(0.5f) * specFactor;
+  for(int i = 0; i < RAY_COUNT; i++){
+    HitInfo info = rayMarchDDA(ray);
+    float invStep = 1.f;
 
-  finalColor = diffuseColor + specularColor;
+    if (!info.hit) {
+      vec3 skyboxColor = texture(u_skybox, ray.dir).rgb;
+      finalColor += skyboxColor * intensity;
+      break;
+    }
+
+    vec3 hitPos = ray.origin + info.dist * ray.dir;
+    vec3 smoothNormal = calcBeveledNormal(info.normal, hitPos); // Use only for lighting
+    vec3 albedo = colors[info.state - 1];
+
+    vec3 shadowOrigin = hitPos + 0.001f * info.normal;
+    ivec3 inormal = ivec3(smoothNormal);
+
+    float edge = calcVoxelEdge(hitPos);
+    albedo = mix(vec3(0.1f), albedo, edge);
+
+    if (edge > 0.5f)
+      albedo *= vec3(10.f);
+
+    float ao = calcVoxelAO(info.coord + inormal, inormal);
+    float fresnel = calcFresnel(ray.dir, smoothNormal, 0.2f);
+    float diffuse = max(0.f, dot(info.normal, u_lightDir));
+    float shadow = calcShadow(shadowOrigin, 50.f);
+
+    vec3 specColor = calcSpecular(smoothNormal, -ray.dir);
+
+    vec3 lighting = albedo * 0.1f * ao;
+    lighting += albedo * shadow * (1.f - fresnel) * (diffuse + specColor); // Metallic specular
+
+    finalColor += lighting * intensity;
+
+    ray.origin = shadowOrigin;
+    ray.dir = reflect(ray.dir, smoothNormal);
+
+    intensity *= fresnel;
+  }
 
   FragColor = vec4(finalColor, 1.f);
 }
