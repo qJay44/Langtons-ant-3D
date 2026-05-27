@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 
+#include "Context.h"
 #include "GLBuffer.h"
 #include "fast_obj.h"
 #include "cglm/struct/mat4.h"
@@ -14,6 +15,12 @@ static void linkAttributes(const MeshData* data, size_t elementSize) {
     vaoLinkAttrib(i, attr.size, attr.type, data->layout.stride, (void*)(offset));
     offset += attr.size * elementSize;
   }
+}
+
+static void setGlobalUniforms(Shader* shader) {
+  vec2s ws = getWinSizef();
+
+  shaderSetUniform2f(shader, "u_resolution", ws.raw);
 }
 
 void meshLoadObj(const char* filepath, MeshData* ioData, u32 attribFlags) {
@@ -156,6 +163,7 @@ void meshDrawElements(MeshElements* self, const Camera* cam, Shader* shader) {
   mat4s model = glms_mat4_mulN(mats, 3);
 
   cameraSetUniforms(cam, shader);
+  setGlobalUniforms(shader);
   shaderSetUniformMat4f(shader, "u_model", model.raw);
 
   shaderUse(shader);
@@ -171,6 +179,7 @@ void meshDrawArrays(MeshArrays* self, const Camera* cam, Shader* shader) {
   mat4s model = glms_mat4_mulN(mats, 3);
 
   cameraSetUniforms(cam, shader);
+  setGlobalUniforms(shader);
   shaderSetUniformMat4f(shader, "u_model", model.raw);
 
   shaderUse(shader);
@@ -184,6 +193,7 @@ void meshDrawScreen(const Camera* cam, Shader* shader) {
   vaoBind(vao);
 
   cameraSetUniforms(cam, shader);
+  setGlobalUniforms(shader);
   shaderUse(shader);
   glDrawArrays(GL_TRIANGLES, 0, 6);
 

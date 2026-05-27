@@ -10,6 +10,8 @@
 static const ivec3s initDir = (ivec3s){{0, 0, -1}};
 static const ivec3s initUp  = (ivec3s){{0, 1,  0}};
 
+Ant* activeAnt = NULL;
+
 Ant antCreateDefault() {
   ivec3s pos = {0};
   pos.x = grid.size / 2;

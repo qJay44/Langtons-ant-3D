@@ -1,9 +1,3 @@
-#include "engine/fbo.h"
-#include "engine/mesh/mesh.h"
-#include "engine/shader.h"
-#include "engine/texture/TextureDescriptor.h"
-#include "engine/texture/texture2D.h"
-#include "engine/texture/textureCubemap.h"
 #include <cglm/mat4.h>
 #include <cglm/struct/mat4.h>
 #include <stdio.h>
@@ -27,9 +21,10 @@
 #include "engine/camera.h"
 #include "engine/text/font.h"
 #include "engine/text/text.h"
+#include "engine/shader.h"
+#include "engine/texture/textureCubemap.h"
 
 struct Context ctx = {0};
-Ant* activeAnt = NULL;
 
 int main() {
   // Change cwd to where "src" directory located (since launching the executable always from the directory where its located)
@@ -80,10 +75,6 @@ int main() {
   Shader voxelShader = shaderCreate("voxel.vert", "voxel.frag", NULL);
   Shader textShader = shaderCreate("text.vert", "text.frag", NULL);
 
-  Shader extractShader = shaderCreate("bloom/uv.vert", "bloom/extract.frag", NULL);
-  Shader blurShader = shaderCreate("bloom/uv.vert", "bloom/blur.frag", NULL);
-  Shader bloomShader = shaderCreate("bloom/uv.vert", "bloom/bloom.frag", NULL);
-
   // ----- Text ------------------------------------------------ //
 
   Font font = fontCreate("res/fonts/Minecraft.otf", 22, 0);
@@ -116,42 +107,6 @@ int main() {
   Environment environment = envCreateDefault("res/tex/cubemaps/Cubemap_Sky_01-512x512.png");
   sunSetUniforms(&environment.sun, &voxelShader);
 
-  // ----- Framebuffers ---------------------------------------- //
-
-  // ===== HDR FBO ============================================= //
-
-  TextureDescriptor hdrTexDesc = texture2D_defaultDesc;
-  hdrTexDesc.internalFormat = GL_RGBA16F;
-  hdrTexDesc.format = GL_RGBA;
-  hdrTexDesc.type = GL_HALF_FLOAT;
-  hdrTexDesc.minFilter = GL_LINEAR;
-  hdrTexDesc.magFilter = GL_LINEAR;
-
-  Texture2D texScreenHDR = texture2D_createEmpty(&hdrTexDesc, initWidth, initHeight);
-
-  FBO fboScreenHDR = {0};
-  fboGen(&fboScreenHDR, 1);
-  fboAttach2D(&fboScreenHDR, GL_COLOR_ATTACHMENT0, texScreenHDR);
-
-  // ===== Blur FBO ============================================ //
-
-  TextureDescriptor blurTexDesc = texture2D_defaultDesc;
-  blurTexDesc.internalFormat = GL_RGBA16F;
-  blurTexDesc.format = GL_RGBA;
-  blurTexDesc.type = GL_HALF_FLOAT;
-  blurTexDesc.minFilter = GL_LINEAR;
-  blurTexDesc.magFilter = GL_LINEAR;
-
-  Texture2D texBlurH = texture2D_createEmpty(&blurTexDesc, initWidth / 2, initHeight / 2);
-  Texture2D texBlurV = texture2D_createEmpty(&blurTexDesc, initWidth / 2, initHeight / 2);
-
-  FBO fboScreenBlur = {0};
-  fboGen(&fboScreenBlur, 1);
-  fboAttach2D(&fboScreenBlur, GL_COLOR_ATTACHMENT0, texBlurH);
-  fboAttach2D(&fboScreenBlur, GL_COLOR_ATTACHMENT1, texBlurV);
-
-  // =========================================================== //
-
   // ----- Pre loop -------------------------------------------- //
 
   double titleTimer = glfwGetTime();
@@ -159,7 +114,6 @@ int main() {
   double currTime = prevTime + 1.f;
   float dt = currTime;
   float fpsTimer = 0.f;
-  size_t blurAmount = 4;
 
   glDisable(GL_DEPTH_TEST);
   glDisable(GL_CULL_FACE);
@@ -195,53 +149,11 @@ int main() {
 
     // ----- Draw to HDR buffer ---------------------------------- //
 
-    fboBind(&fboScreenHDR);
-    glViewport(0, 0, initWidth, initHeight);
-    glDrawBuffer(GL_COLOR_ATTACHMENT0);
     glClearColor(0.f, 0.f, 0.f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     textureCubemap_bind(environment.skybox, 1);
     gridDraw(activeCamera, &voxelShader);
-
-    // ----- Draw to Blur buffer (first pass) -------------------- //
-
-    fboBind(&fboScreenBlur);
-    glViewport(0, 0, initWidth / 2, initHeight / 2);
-    glDrawBuffer(GL_COLOR_ATTACHMENT1); // Write to vertical
-    glClearColor(0.f, 0.f, 0.f, 1.f);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    texture2D_bind(texScreenHDR, 0);
-    meshDrawScreen(activeCamera, &extractShader);
-
-    // ----- Draw to Blur buffer --------------------------------- //
-
-    for (size_t i = 0; i < blurAmount; i++) {
-      fboBind(&fboScreenBlur);
-      glDrawBuffer(GL_COLOR_ATTACHMENT0); // Write to horizontal
-
-      texture2D_bind(texBlurV, 0); // Read from vertical
-      shaderSetUniform1ui(&blurShader, "u_horizontal", 1u);
-      meshDrawScreen(activeCamera, &blurShader);
-
-      glDrawBuffer(GL_COLOR_ATTACHMENT1); // Write to vertical
-
-      texture2D_bind(texBlurH, 0); // Read from horizontal
-      shaderSetUniform1ui(&blurShader, "u_horizontal", 0u);
-      meshDrawScreen(activeCamera, &blurShader);
-    }
-
-    // ----- Draw to the main buffer ----------------------------- //
-
-    fboUnbind();
-    glViewport(0, 0, initWidth, initHeight);
-    glClearColor(0.f, 0.f, 0.f, 1.f);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    texture2D_bind(texBlurH, 0);
-    texture2D_bind(texScreenHDR, 1);
-    meshDrawScreen(activeCamera, &bloomShader);
 
     textDraw(&textFps, activeCamera, &textShader);
     textDraw(&textSteps, activeCamera, &textShader);

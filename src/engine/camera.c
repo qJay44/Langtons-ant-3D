@@ -98,6 +98,7 @@ void cameraSetUniforms(const Camera* self, Shader* shader) {
   shaderSetUniform1f   (shader, "u_camFar"    , self->far);
   shaderSetUniform1f   (shader, "u_camFov"    , self->fov);
   shaderSetUniform3f   (shader, "u_camPos"    , self->position.raw);
+  shaderSetUniform3f   (shader, "u_camDir"    , self->orientation.raw);
   shaderSetUniform3f   (shader, "u_camUp"     , self->up.raw);
   shaderSetUniformMat4f(shader, "u_camProj"   , self->proj.raw);
   shaderSetUniformMat4f(shader, "u_camView"   , self->view.raw);
