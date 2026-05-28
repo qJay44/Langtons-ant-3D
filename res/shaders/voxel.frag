@@ -15,12 +15,17 @@ layout(binding = 1) uniform samplerCube u_skybox;
 #define RAY_COUNT 3
 
 // Linear
-const vec3 stateColors[5] = vec3[] (
+const vec3 stateColors[10] = vec3[] (
   vec3(1.0000f, 0.0191f, 0.0191f), // State 1: Red
   vec3(0.0191f, 0.6918f, 0.0191f), // State 2: Green
   vec3(0.0191f, 0.1717f, 1.0000f), // State 3: Blue
   vec3(1.0000f, 0.5776f, 0.0000f), // State 4: Yellow
-  vec3(0.0000f, 1.0000f, 1.0000f)  // State 5: Cyan
+  vec3(0.0000f, 1.0000f, 1.0000f), // State 5: Cyan
+  vec3(1.0000f, 0.0000f, 1.0000f), // State 6: Magenta
+  vec3(0.4012f, 0.0191f, 1.0000f), // State 7: Purple / Indigo
+  vec3(0.3564f, 1.0000f, 0.0000f), // State 8: Bright Lime Green
+  vec3(1.0000f, 0.0732f, 0.0000f), // State 9: Intense Orange / Coral
+  vec3(1.0000f, 0.0191f, 0.3564f)  // State 10: Hot Pink
 );
 
 struct Ray {

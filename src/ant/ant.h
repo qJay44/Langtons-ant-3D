@@ -2,8 +2,7 @@
 #define ANT_H
 
 #include "cglm/types-struct.h"
-
-#define ANT_MAX_STATES 5u
+#include "grid.h"
 
 typedef enum {
   TURN_LEFT,
@@ -18,7 +17,7 @@ typedef struct {
   ivec3s up;
 
   // Also can be static if the only ant
-  AntTurn rules[ANT_MAX_STATES];
+  AntTurn rules[GRID_MAX_STATES];
   u8 activeStates;
 
   int steps;

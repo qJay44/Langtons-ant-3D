@@ -1,6 +1,6 @@
 ## Description
 
-C implementation of **[Langton's ant](https://en.wikipedia.org/wiki/Langton%27s_ant)** rendered in 3D using OpenGL
+C implementation of **[Langton's ant](https://en.wikipedia.org/wiki/Langton%27s_ant)** rendered in 3D with DDA ray cast using OpenGL
 
  <div align="center">
    <video src="https://github.com/user-attachments/assets/03aa873d-d03d-45cd-8f49-07fda4857315" width="100%"></video>
@@ -11,7 +11,7 @@ C implementation of **[Langton's ant](https://en.wikipedia.org/wiki/Langton%27s_
 ### 🚀 Prerequisites
 * CMake 3.21
 * C99 compiler (GCC / Clang)
-* OpenGL drivers
+* OpenGL drivers (4.6, Core)
 
 ---
 
@@ -24,11 +24,11 @@ C implementation of **[Langton's ant](https://en.wikipedia.org/wiki/Langton%27s_
 
 #### Manual libs (configured via `.env.cmake`)
 
-* 📦 **[GLAD](https://dav1d.de)** — OpenGL Loader Generator
+* 📦 **[GLAD](https://github.com/dav1dde/glad)** — OpenGL Loader Generator
   * Path: `$ENV{HOME}/Libs/glad`
-* 📦 **[cglm v0.9.6](https://github.com)** — Optimized 3D Math Library for C
+* 📦 **[cglm v0.9.6](https://github.com/recp/cglm)** — Optimized 3D Math Library for C
   * Path: `$ENV{HOME}/Libs/cglm-0.9.6`
-* 📦 **[stb_ds.h & stb_image.h](https://github.com)** — Simple hashmap and image loading
+* 📦 **[stb_ds.h & stb_image.h](https://github.com/nothings/stb)** — Simple hashmap and image loading
   * Path: `$ENV{HOME}/Libs/stb`
 
 ---

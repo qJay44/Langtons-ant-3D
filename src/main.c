@@ -90,15 +90,18 @@ int main() {
   Text textStepsPerFrame = textCreate(&font, "0");
   textSetPosUnderOther(&textStepsPerFrame, &textInstances, (vec2s){{0.f, -20.f}});
 
+  Text textStates = textCreate(&font, "0");
+  textSetPosUnderOther(&textStates, &textStepsPerFrame, (vec2s){{0.f, -20.f}});
+
   // ----- Other ----------------------------------------------- //
 
-  gridInit(128u);
+  gridInit(256u);
 
   Camera camera = cameraCreateDefault();
   camera.speed *= 2.f;
-  camera.position.x = grid.size * 0.5f + 5.f;
-  camera.position.y = grid.size * 0.5f + 5.f;
-  camera.position.z = grid.size * 0.5f + 5.f;
+  camera.position.x = grid.dsize * 0.5f + 5.f;
+  camera.position.y = grid.dsize * 0.5f + 5.f;
+  camera.position.z = grid.dsize * 0.5f + 5.f;
   activeCamera = &camera;
 
   Ant ant = antCreateDefault();
@@ -135,6 +138,7 @@ int main() {
     for (int i = 0; i < ctx.movesPerFrame; i++) {
       antUpdate(&ant);
     }
+    gridUpdateTexture();
 
     // Update fps text every 0.1 seconds
     if (fpsTimer > 0.1f){
@@ -144,8 +148,9 @@ int main() {
     }
 
     textSetTextFmt(&textSteps, "Steps: %d", ant.steps);
-    textSetTextFmt(&textInstances, "Voxels: %zu", gridGetVoxelsCount());
+    textSetTextFmt(&textInstances, "Voxels: %d", ctx.activeVoxels);
     textSetTextFmt(&textStepsPerFrame, "Speed: x%d", ctx.movesPerFrame);
+    textSetTextFmt(&textStates, "States: %d / %d", ant.activeStates, GRID_MAX_STATES);
 
     // ----- Draw to HDR buffer ---------------------------------- //
 
@@ -159,6 +164,7 @@ int main() {
     textDraw(&textSteps, activeCamera, &textShader);
     textDraw(&textStepsPerFrame, activeCamera, &textShader);
     textDraw(&textInstances, activeCamera, &textShader);
+    textDraw(&textStates, activeCamera, &textShader);
 
     // ----------------------------------------------------------- //
 

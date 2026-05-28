@@ -1,8 +1,9 @@
+#include "Context.h"
 #include "ant.h"
-#include "cglm/types-struct.h"
 #include "grid.h"
 #include "utils.h"
 
+#include <assert.h>
 #include <cglm/struct/vec3.h>
 #include <cglm/util.h>
 #include <cglm/vec3.h>
@@ -13,32 +14,26 @@ static const ivec3s initUp  = (ivec3s){{0, 1,  0}};
 Ant* activeAnt = NULL;
 
 Ant antCreateDefault() {
-  ivec3s pos = {0};
-  pos.x = grid.size / 2;
-  pos.y = grid.size / 2;
-  pos.z = grid.size / 2;
-
-  Ant ant = {
-    pos,
-    initDir,
-    initUp,
-    {
-      TURN_LEFT,
-      TURN_RIGHT,
-      TURN_UP,
-      TURN_DOWN,
-      TURN_LEFT,
-    },
-    ANT_MAX_STATES,
-    0
-  };
+  Ant ant = {0};
+  antRandomizeRules(&ant);
 
   return ant;
 }
 
 static void antMove(Ant* self) {
+  assert(self && grid.size);
+
   self->pos = ivec3s_add(self->pos, self->dir);
   self->steps++;
+  GLsizei edgeCoord = grid.dsize - 1;
+
+  if (self->pos.x < 0) self->pos.x = edgeCoord;
+  if (self->pos.y < 0) self->pos.y = edgeCoord;
+  if (self->pos.z < 0) self->pos.z = edgeCoord;
+
+  if (self->pos.x > edgeCoord) self->pos.x = 0;
+  if (self->pos.y > edgeCoord) self->pos.y = 0;
+  if (self->pos.z > edgeCoord) self->pos.z = 0;
 }
 
 static void antTurn(Ant* self, AntTurn turn) {
@@ -68,6 +63,9 @@ void antUpdate(Ant* self) {
   u32 nextState = (currState + 1) % self->activeStates;
   nextState += nextState == 0;
 
+  if (currState == 0)
+    ctx.activeVoxels++;
+
   gridSetVoxel(self->pos, nextState);
   antTurn(self, self->rules[currState]);
   antMove(self);
@@ -76,14 +74,14 @@ void antUpdate(Ant* self) {
 void antRandomizeRules(Ant* self) {
   gridClearStates();
 
-  self->activeStates = rand() % ANT_MAX_STATES + 1;
+  self->activeStates = rand() % GRID_MAX_STATES + 1;
   for (u8 i = 0; i < self->activeStates; i++)
     self->rules[i] = (AntTurn)(rand() % 4);
 
   ivec3s pos = {0};
-  pos.x = grid.size / 2;
-  pos.y = grid.size / 2;
-  pos.z = grid.size / 2;
+  pos.x = grid.dsize / 2;
+  pos.y = grid.dsize / 2;
+  pos.z = grid.dsize / 2;
 
   self->pos = pos;
   self->dir = initDir;
