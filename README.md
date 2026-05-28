@@ -3,8 +3,10 @@
 C implementation of **[Langton's ant](https://en.wikipedia.org/wiki/Langton%27s_ant)** rendered in 3D with DDA ray cast using OpenGL
 
  <div align="center">
-   <video src="https://github.com/user-attachments/assets/03aa873d-d03d-45cd-8f49-07fda4857315" width="100%"></video>
- </div>
+   <!-- "60e1b52b0c731add9b7b8a424e374e6d67624c34" commit <video src="https://github.com/user-attachments/assets/03aa873d-d03d-45cd-8f49-07fda4857315" width="100%"></video> -->
+ <video src="https://github.com/user-attachments/assets/3fe131bd-e57a-4d44-b0cf-4736cdad98c1" width="100%"></video>
+ <video src="https://github.com/user-attachments/assets/355b4d2b-dbec-466d-b124-daf71a022251" width="100%"></video>
+</div>
 
 ---
 
